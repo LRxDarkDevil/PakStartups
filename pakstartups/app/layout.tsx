@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   description:
     "Discover Pakistan's most innovative startups, find co-founders, access funding, and connect with the growing entrepreneurial community.",
   keywords: ["Pakistan startups", "startup ecosystem", "co-founder matching", "PakStartups", "entrepreneurship Pakistan"],
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "PakStartups — Pakistan's Startup Ecosystem",
     description: "Where curious minds and dreamers build Pakistan's tomorrow together.",

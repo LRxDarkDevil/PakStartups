@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -48,8 +49,15 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full bg-[#e8ffee]/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(15,82,56,0.06)] font-['Plus_Jakarta_Sans'] antialiased text-sm font-medium">
       <nav className="flex justify-between items-center w-full px-8 py-4 max-w-8xl mx-auto">
         {/* Logo */}
-        <Link href="/" className="text-2xl font-black tracking-tighter text-[#0f5238] active:scale-95 transform transition-transform cursor-pointer">
-          PakStartups
+        <Link href="/" className="flex items-center gap-2 active:scale-95 transform transition-transform cursor-pointer">
+          <Image
+            src="/logo.png"
+            alt="PakStartups Logo"
+            width={140}
+            height={36}
+            className="h-9 w-auto object-contain"
+            priority
+          />
         </Link>
 
         {/* Desktop Nav */}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const footerLinks = {
   Platform: [
@@ -32,7 +33,15 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           {/* Brand column */}
           <div className="md:col-span-1">
-            <div className="text-xl font-black text-[#0f5238] mb-4">PakStartups</div>
+            <Link href="/" className="inline-block mb-4 active:scale-95 transition-transform">
+              <Image
+                src="/logo.png"
+                alt="PakStartups Logo"
+                width={160}
+                height={40}
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
             <p className="text-sm text-[#2d6a4f] leading-relaxed mb-8">
               Building the definitive platform for Pakistan&apos;s entrepreneurial ecosystem through data, community, and capital.
             </p>
