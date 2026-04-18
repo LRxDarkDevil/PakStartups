@@ -7,22 +7,32 @@ service cloud.firestore {
     function isAuth() {
       return request.auth != null;
     }
-    
     function isOwner(uid) {
       return isAuth() && request.auth.uid == uid;
     }
     function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     function validString(field, minLen, maxLen) {
       return field is string && field.size() >= minLen && field.size() <= maxLen;
     }
+    // Prevent non-admins from setting role to 'admin'
+    function roleNotEscalated() {
+      return !request.resource.data.keys().hasAll(['role']) ||
+             request.resource.data.role != 'admin';
+    }
 
     // ─── Users ────────────────────────────────────────────────────────────────
     match /users/{uid} {
+      // Anyone authenticated can read user profiles
       allow read: if isAuth();
-      allow create: if isOwner(uid);
-      allow update: if isOwner(uid) || isAdmin();
+      // Only the user themselves can create their own profile (no self-promotion to admin)
+      allow create: if isOwner(uid) && roleNotEscalated();
+      // Users can update their own profile BUT cannot set role=admin
+      // Only admins can change roles (including to admin)
+      allow update: if (isOwner(uid) && roleNotEscalated()) || isAdmin();
+      // Only admins can delete users
       allow delete: if isAdmin();
     }
 
@@ -31,7 +41,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuth()
         && validString(request.resource.data.name, 2, 100)
-        && validString(request.resource.data.desc, 10, 500);
+        && validString(request.resource.data.desc, 10, 500)
+        // Force ownerId to match the authenticated user
+        && request.resource.data.ownerId == request.auth.uid;
+      // Only the startup owner or an admin can edit
       allow update: if isOwner(resource.data.ownerId) || isAdmin();
       allow delete: if isOwner(resource.data.ownerId) || isAdmin();
     }
@@ -62,7 +75,8 @@ service cloud.firestore {
     match /b2bDemands/{demandId} {
       allow read: if true;
       allow create: if isAuth()
-        && validString(request.resource.data.title, 5, 200);
+        && validString(request.resource.data.title, 5, 200)
+        && request.resource.data.ownerId == request.auth.uid;
       allow update: if isOwner(resource.data.ownerId) || isAdmin();
       allow delete: if isOwner(resource.data.ownerId) || isAdmin();
     }
@@ -71,7 +85,8 @@ service cloud.firestore {
     match /b2bSolutions/{solutionId} {
       allow read: if true;
       allow create: if isAuth()
-        && validString(request.resource.data.title, 5, 200);
+        && validString(request.resource.data.title, 5, 200)
+        && request.resource.data.ownerId == request.auth.uid;
       allow update: if isOwner(resource.data.ownerId) || isAdmin();
       allow delete: if isOwner(resource.data.ownerId) || isAdmin();
     }
@@ -81,10 +96,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuth()
         && validString(request.resource.data.title, 5, 200)
-        && validString(request.resource.data.desc, 20, 2000);
+        && validString(request.resource.data.desc, 20, 2000)
+        && request.resource.data.ownerId == request.auth.uid;
       allow update: if isOwner(resource.data.ownerId) || isAdmin();
       allow delete: if isOwner(resource.data.ownerId) || isAdmin();
-
       match /votes/{uid} {
         allow read: if true;
         allow write: if isOwner(uid);
@@ -93,10 +108,13 @@ service cloud.firestore {
 
     // ─── Blog Posts ───────────────────────────────────────────────────────────
     match /blogPosts/{postId} {
+      // Only approved posts are public; admins see all
       allow read: if resource.data.status == 'approved' || isAdmin();
       allow create: if isAuth()
         && validString(request.resource.data.title, 5, 200)
-        && request.resource.data.status == 'pending';
+        // New posts start as 'pending' — admins approve them
+        && request.resource.data.status == 'pending'
+        && request.resource.data.authorId == request.auth.uid;
       allow update: if isOwner(resource.data.authorId) || isAdmin();
       allow delete: if isOwner(resource.data.authorId) || isAdmin();
     }
@@ -106,10 +124,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuth()
         && validString(request.resource.data.title, 5, 200)
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status == 'pending'
+        && request.resource.data.organizerId == request.auth.uid;
       allow update: if isOwner(resource.data.organizerId) || isAdmin();
       allow delete: if isOwner(resource.data.organizerId) || isAdmin();
-
       match /rsvps/{uid} {
         allow read: if true;
         allow write: if isOwner(uid);
