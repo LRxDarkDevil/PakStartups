@@ -1,10 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Find Your Co-Founder — PakStartups",
-  description: "Connect with talented people building Pakistan's future. Browse founders, tech leads, freelancers and students.",
-};
+
 
 const profiles = [
   { name: "Ahmed Khan", city: "Lahore", role: "Founder", roleColor: "bg-[#2d6a4f] text-[#a8e7c5]", looking: "A technical co-founder to build a sustainable agri-tech marketplace.", skills: ["Product", "AgriTech", "Strategy"] },
@@ -16,6 +16,8 @@ const profiles = [
 ];
 
 export default function MatchPage() {
+  const [activeTab, setActiveTab] = useState("Browse Matches");
+
   return (
     <>
       {/* Page Header with Tabs */}
@@ -26,15 +28,16 @@ export default function MatchPage() {
         <p className="text-lg text-[#404943] max-w-2xl mx-auto mb-12">
           Connect with talented people building Pakistan&apos;s future
         </p>
-        <div className="flex justify-center gap-12 border-b border-[#bfc9c1]/20">
-          {["Browse Matches", "My Requests", "Received Requests", "Saved Profiles"].map((tab, i) => (
+        <div className="flex justify-center gap-12 border-b border-[#bfc9c1]/20 overflow-x-auto no-scrollbar">
+          {["Browse Matches", "My Requests", "Received Requests", "Saved Profiles"].map((tab) => (
             <button
               key={tab}
-              className={
-                i === 0
-                  ? "pb-4 text-[#0f5238] font-bold border-b-4 border-[#0f5238]"
-                  : "pb-4 text-[#404943] font-medium hover:text-[#0f5238] transition-colors"
-              }
+              onClick={() => setActiveTab(tab)}
+              className={`pb-4 whitespace-nowrap transition-colors ${
+                activeTab === tab
+                  ? "text-[#0f5238] font-bold border-b-4 border-[#0f5238]"
+                  : "text-[#404943] font-medium hover:text-[#0f5238]"
+              }`}
             >
               {tab}
             </button>
@@ -44,6 +47,8 @@ export default function MatchPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 p-8 items-start">
+        {activeTab === "Browse Matches" && (
+            <>
         {/* Sidebar Filter */}
         <aside className="w-full md:w-1/4 bg-[#d5fde2] p-8 rounded-xl sticky top-28">
           <div className="space-y-8">
@@ -192,6 +197,21 @@ export default function MatchPage() {
             </button>
           </div>
         </div>
+        </>
+        )}
+
+        {activeTab !== "Browse Matches" && (
+            <div className="w-full text-center py-32 bg-white rounded-xl border border-[#bfc9c1]/20">
+                <span className="material-symbols-outlined text-6xl text-[#bfc9c1] mb-4">
+                    {activeTab === "Saved Profiles" ? "bookmarks" : "forum"}
+                </span>
+                <h3 className="text-2xl font-bold text-[#002112]">{activeTab}</h3>
+                <p className="text-[#404943] mt-2 mb-6">No records found for this section yet.</p>
+                <button onClick={() => setActiveTab("Browse Matches")} className="px-8 py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-all">
+                    Find Co-Founders
+                </button>
+            </div>
+        )}
       </div>
     </>
   );

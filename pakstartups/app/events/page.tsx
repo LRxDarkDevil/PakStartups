@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Events & Meetups — PakStartups",
-  description: "Weekly sessions, pitching nights, and founder meetups across Pakistan.",
-};
+import { useState } from "react";
+import Link from "next/link";
 
 const upcoming = [
   { date: { month: "MAY", day: "02" }, title: "SaaS Growth Masterclass", type: "WORKSHOP", location: "LUMS, Lahore · Hybrid", organizer: "Zahra Khan", attending: 142 },
@@ -14,8 +11,9 @@ const upcoming = [
 
 const weekDays = ["S","M","T","W","T","F","S"];
 const calDays: (number | null)[] = [null,null,null,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
-
 export default function EventsPage() {
+  const [activeTab, setActiveTab] = useState("Upcoming");
+
   return (
     <>
       {/* Header */}
@@ -27,22 +25,29 @@ export default function EventsPage() {
               Weekly sessions, pitching nights, and founder meetups across Pakistan. Cultivating the next generation of digital leaders.
             </p>
           </div>
-          <button className="flex items-center gap-2 bg-[#0f5238] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#2d6a4f] transition-all">
+          <Link href="/events/propose" className="flex items-center gap-2 bg-[#0f5238] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#2d6a4f] transition-all">
             <span className="material-symbols-outlined">add</span>
             Propose an Event
-          </button>
+          </Link>
         </div>
       </section>
 
       {/* Tabs */}
       <div className="bg-white border-b border-[#e0e0e0]">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="flex gap-8">
-            {["Upcoming","Past Events","Weekly Meetups","Propose an Event"].map((tab, i) => (
-              <button key={tab} className={i === 0 ? "py-4 text-[#0f5238] font-bold border-b-2 border-[#0f5238]" : "py-4 text-[#404943] hover:text-[#0f5238] transition-colors"}>
+          <div className="flex gap-8 overflow-x-auto no-scrollbar">
+            {["Upcoming", "Past Events", "Weekly Meetups"].map((tab) => (
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)}
+                className={`py-4 whitespace-nowrap transition-colors ${activeTab === tab ? "text-[#0f5238] font-bold border-b-2 border-[#0f5238]" : "text-[#404943] hover:text-[#0f5238]"}`}
+              >
                 {tab}
               </button>
             ))}
+            <Link href="/events/propose" className="py-4 text-[#404943] hover:text-[#0f5238] transition-colors whitespace-nowrap">
+              Propose an Event
+            </Link>
           </div>
         </div>
       </div>
@@ -50,6 +55,8 @@ export default function EventsPage() {
       <div className="max-w-7xl mx-auto px-8 py-12 flex flex-col md:flex-row gap-8 items-start">
         {/* Main Content */}
         <div className="flex-1">
+          {activeTab === "Upcoming" && (
+            <>
           {/* Featured Event */}
           <div className="bg-[#0f5238] rounded-2xl p-8 mb-8 text-white relative overflow-hidden">
             <span className="inline-flex items-center gap-2 bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-6">
@@ -110,6 +117,24 @@ export default function EventsPage() {
               </div>
             ))}
           </div>
+            </>
+          )}
+
+          {activeTab === "Past Events" && (
+            <div className="bg-white rounded-xl p-12 text-center border border-[#e0e0e0]">
+              <span className="material-symbols-outlined text-4xl text-[#bfc9c1] mb-2">history</span>
+              <h3 className="text-xl font-bold text-[#002112]">No Past Events</h3>
+              <p className="text-[#404943] mt-2">You haven't attended or hosted any past events yet.</p>
+            </div>
+          )}
+
+          {activeTab === "Weekly Meetups" && (
+            <div className="bg-white rounded-xl p-12 text-center border border-[#e0e0e0]">
+              <span className="material-symbols-outlined text-4xl text-[#bfc9c1] mb-2">groups</span>
+              <h3 className="text-xl font-bold text-[#002112]">Weekly Founder Meetups</h3>
+              <p className="text-[#404943] mt-2">Weekly generic networking events. Check back for Friday updates.</p>
+            </div>
+          )}
         </div>
 
         {/* Sidebar Calendar */}
@@ -147,9 +172,9 @@ export default function EventsPage() {
           <div className="bg-[#d5fde2] rounded-xl p-6">
             <h3 className="font-bold text-[#002112] mb-2">Host Your Own</h3>
             <p className="text-[#404943] text-sm mb-4">Have an idea for a meetup or workshop? We provide the platform, audience, and logistical support.</p>
-            <a href="#" className="text-[#0f5238] font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all">
+            <Link href="/events/propose" className="text-[#0f5238] font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all">
               Learn about guidelines <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

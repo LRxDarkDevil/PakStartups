@@ -1,9 +1,4 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Volunteer — PakStartups",
-  description: "Give back to Pakistan's startup community. Volunteer as a mentor, facilitator, or organizer.",
-};
+"use client";
 
 const roles = [
   { icon: "school", title: "Mentor", desc: "Provide 1-on-1 guidance to early-stage founders on product, marketing, fundraising, or ops. 2–4 hrs/month." },

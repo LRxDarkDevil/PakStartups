@@ -1,10 +1,8 @@
-import Image from "next/image";
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "B2B Marketplace — PakStartups",
-  description: "Connect with the services your startup needs. High-velocity solutions for the modern entrepreneur.",
-};
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 
 const demands = [
   {
@@ -65,6 +63,12 @@ const demands = [
 ];
 
 export default function B2BPage() {
+  const [activeTab, setActiveTab] = useState("Browse Demands");
+  const [activeCategory, setActiveCategory] = useState("All Categories");
+
+  // Mock filters for solutions
+  const solutions = demands.map(d => ({...d, type: "Solution"})); // Fake list based off demands
+  
   return (
     <>
       {/* Page Header */}
@@ -78,13 +82,13 @@ export default function B2BPage() {
               Connect with the services your startup needs. High-velocity solutions for the modern entrepreneur.
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
-              <button className="px-8 py-4 bg-[#0f5238] text-white rounded-lg font-bold text-lg flex items-center gap-2 shadow-xl shadow-[#0f5238]/10 hover:opacity-90 transition-all">
+              <Link href="/b2b/post-demand" className="px-8 py-4 bg-[#0f5238] text-white rounded-lg font-bold text-lg flex items-center gap-2 shadow-xl shadow-[#0f5238]/10 hover:opacity-90 transition-all">
                 <span className="material-symbols-outlined">add_circle</span>
                 Post a Demand
-              </button>
-              <button className="px-8 py-4 bg-[#caf2d7] text-[#0f5238] rounded-lg font-bold text-lg border border-[#0f5238]/10 hover:bg-[#c4ecd2] transition-all">
+              </Link>
+              <Link href="/b2b/list-solution" className="px-8 py-4 bg-[#caf2d7] text-[#0f5238] rounded-lg font-bold text-lg border border-[#0f5238]/10 hover:bg-[#c4ecd2] transition-all">
                 List Your Solution
-              </button>
+              </Link>
             </div>
           </div>
           <div className="relative w-full max-w-md aspect-square bg-[#d5fde2] rounded-[40px] overflow-hidden rotate-3 hover:rotate-0 transition-transform duration-500 shadow-2xl flex items-center justify-center">
@@ -111,22 +115,35 @@ export default function B2BPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-8 mb-8 border-b border-[#bfc9c1]/20 overflow-x-auto pb-1">
-          {["Browse Demands", "Browse Solutions", "Post a Demand", "List a Solution", "AI Matches ✨"].map((tab, i) => (
-            <button key={tab} className={`pb-4 whitespace-nowrap ${i === 0 ? "text-[#0f5238] font-bold border-b-4 border-[#0f5238]" : "text-[#404943] font-medium hover:text-[#0f5238] transition-colors"}`}>
+        <div className="flex items-center gap-8 mb-8 border-b border-[#bfc9c1]/20 overflow-x-auto pb-1 no-scrollbar">
+          {["Browse Demands", "Browse Solutions", "AI Matches ✨"].map((tab) => (
+            <button 
+              key={tab} 
+              onClick={() => setActiveTab(tab)}
+              className={`pb-4 whitespace-nowrap ${activeTab === tab ? "text-[#0f5238] font-bold border-b-4 border-[#0f5238]" : "text-[#404943] font-medium hover:text-[#0f5238] transition-colors"}`}
+            >
               {tab}
             </button>
           ))}
+          <Link href="/b2b/post-demand" className="pb-4 whitespace-nowrap text-[#404943] font-medium hover:text-[#0f5238] transition-colors ml-auto md:ml-0">Post a Demand</Link>
+          <Link href="/b2b/list-solution" className="pb-4 whitespace-nowrap text-[#404943] font-medium hover:text-[#0f5238] transition-colors">List a Solution</Link>
         </div>
 
         {/* Category Filter */}
         <div className="flex flex-wrap gap-3 mb-12">
-          {["All Categories", "Tech & Dev", "Marketing", "Legal", "Finance", "Design", "Operations"].map((cat, i) => (
-            <button key={cat} className={`px-6 py-2.5 rounded-full font-bold text-sm ${i === 0 ? "bg-[#0f5238] text-white shadow-md" : "bg-white text-[#404943] hover:bg-[#caf2d7] transition-all"}`}>
+          {["All Categories", "Tech & Dev", "Marketing", "Legal", "Finance", "Design", "Operations"].map((cat) => (
+            <button 
+                key={cat} 
+                onClick={() => setActiveCategory(cat)}
+                className={`px-6 py-2.5 rounded-full font-bold text-sm ${activeCategory === cat ? "bg-[#0f5238] text-white shadow-md" : "bg-white text-[#404943] hover:bg-[#caf2d7] transition-all"}`}
+            >
               {cat}
             </button>
           ))}
         </div>
+
+        {activeTab === "Browse Demands" && (
+            <>
 
         {/* Demand Cards */}
         <div className="grid grid-cols-1 gap-6">
@@ -179,6 +196,30 @@ export default function B2BPage() {
             Load More Demands
           </button>
         </div>
+        </>
+        )}
+
+        {activeTab === "Browse Solutions" && (
+            <div className="text-center py-20 bg-white rounded-xl border border-[#bfc9c1]/20">
+                <span className="material-symbols-outlined text-4xl text-[#bfc9c1] mb-2">storefront</span>
+                <h3 className="text-xl font-bold text-[#002112]">Service Directory</h3>
+                <p className="text-[#404943] mt-2 mb-6">Explore agencies, freelancers, and B2B solutions listed on PakStartups.</p>
+                <Link href="/b2b/list-solution" className="px-8 py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-all inline-block">
+                    List Your Agency
+                </Link>
+            </div>
+        )}
+
+        {activeTab === "AI Matches ✨" && (
+            <div className="text-center py-20 bg-white rounded-xl border border-[#bfc9c1]/20">
+                <span className="material-symbols-outlined text-4xl text-[#0f5238] mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                <h3 className="text-xl font-bold text-[#002112]">Your AI Matches</h3>
+                <p className="text-[#404943] mt-2 mb-6">Our system uses your profile skills and recent activity to instantly pair you with relevant demands or solutions.</p>
+                <button className="px-8 py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-all inline-block active:scale-95">
+                    Generate New Matches
+                </button>
+            </div>
+        )}
       </main>
     </>
   );

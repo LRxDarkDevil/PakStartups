@@ -1,10 +1,8 @@
-import Image from "next/image";
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Stories & Insights — PakStartups",
-  description: "Real journeys from Pakistan's builders.",
-};
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 
 const featured = {
   category: "FOUNDER JOURNEY",
@@ -36,6 +34,12 @@ const bgColors = ["bg-[#caf2d7]","bg-[#d5fde2]","bg-[#cff7dd]","bg-[#c4ecd2]","b
 const icons = ["corporate_fare","park","menu_book","tablet","groups","location_city"];
 
 export default function BlogPage() {
+  const [activeTab, setActiveTab] = useState("All Posts");
+
+  const filteredPosts = activeTab === "All Posts" 
+    ? posts 
+    : posts.filter(p => p.category === (activeTab === "Founder Journeys" ? "Founder Journey" : activeTab === "Case Studies" ? "Case Study" : "Lessons Learned"));
+
   return (
     <>
       {/* Header */}
@@ -45,22 +49,29 @@ export default function BlogPage() {
             <h1 className="text-5xl font-black text-[#002112] tracking-tight mb-2">Stories & Insights</h1>
             <p className="text-[#404943]">Real journeys from Pakistan&apos;s builders</p>
           </div>
-          <button className="flex items-center gap-2 bg-[#0f5238] text-white px-5 py-3 rounded-lg font-bold hover:bg-[#2d6a4f] transition-all">
+          <Link href="/blog/submit" className="flex items-center gap-2 bg-[#0f5238] text-white px-5 py-3 rounded-lg font-bold hover:bg-[#2d6a4f] transition-all">
             <span className="material-symbols-outlined text-sm">edit</span>
             Share Your Story
-          </button>
+          </Link>
         </div>
       </section>
 
       {/* Tabs */}
       <div className="bg-white border-b border-[#e0e0e0]">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="flex gap-6 overflow-x-auto">
-            {["All Posts","Founder Journeys","Case Studies","Lessons Learned","Submit Your Story"].map((tab,i) => (
-              <button key={tab} className={`py-4 text-sm whitespace-nowrap ${i===0 ? "text-[#0f5238] font-bold border-b-2 border-[#0f5238]" : "text-[#404943] hover:text-[#0f5238] transition-colors"}`}>
+          <div className="flex gap-6 overflow-x-auto no-scrollbar">
+            {["All Posts","Founder Journeys","Case Studies","Lessons Learned"].map((tab) => (
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)}
+                className={`py-4 text-sm whitespace-nowrap transition-colors ${activeTab === tab ? "text-[#0f5238] font-bold border-b-2 border-[#0f5238]" : "text-[#404943] hover:text-[#0f5238]"}`}
+              >
                 {tab}
               </button>
             ))}
+            <Link href="/blog/submit" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors ml-auto md:ml-0">
+               Submit Your Story
+            </Link>
           </div>
         </div>
       </div>
@@ -94,7 +105,7 @@ export default function BlogPage() {
 
         {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {posts.map((p, i) => (
+          {filteredPosts.length > 0 ? filteredPosts.map((p, i) => (
             <div key={p.title} className="group cursor-pointer">
               <div className={`rounded-xl aspect-[16/10] flex items-center justify-center mb-4 overflow-hidden border border-[#e0e0e0]`}>
                 <Image width={400} height={250} src={p.cover} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -109,7 +120,13 @@ export default function BlogPage() {
                 <span className="text-xs text-[#707973]">· {p.date} · {p.read}</span>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="col-span-full py-16 text-center text-[#404943]">
+                <span className="material-symbols-outlined text-5xl opacity-40 mb-3">article</span>
+                <p className="font-bold">No stories found</p>
+                <p className="text-sm">There are currently no featured {activeTab} available.</p>
+            </div>
+          )}
         </div>
 
         {/* Load More */}

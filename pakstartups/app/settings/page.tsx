@@ -1,55 +1,6 @@
-"use client";
-
-import { useState } from "react";
-
-const sidebarItems = [
-  { icon: "person", label: "Profile", id: "profile" },
-  { icon: "interests", label: "Skills & Interests", id: "skills" },
-  { icon: "share", label: "Social Accounts", id: "social" },
-  { icon: "notifications", label: "Notifications", id: "notifications" },
-  { icon: "lock", label: "Privacy", id: "privacy" },
-  { icon: "security", label: "Security", id: "security" },
-  { icon: "cancel", label: "Danger Zone", id: "danger", danger: true },
-];
-
 export default function SettingsPage() {
-  const [active, setActive] = useState("profile");
-
   return (
-    <>
-      <div className="max-w-7xl mx-auto px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-black text-[#002112]">Account Settings</h1>
-          <p className="text-[#404943] mt-1">Manage your digital presence and account preferences.</p>
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-8 items-start">
-          {/* Sidebar */}
-          <aside className="w-full md:w-56 shrink-0">
-            <nav className="space-y-1">
-              {sidebarItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActive(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-left transition-all ${
-                    active === item.id
-                      ? "bg-[#d5fde2] text-[#0f5238] font-bold"
-                      : item.danger
-                      ? "text-red-600 hover:bg-red-50"
-                      : "text-[#404943] hover:bg-[#f5f5f5]"
-                  }`}
-                >
-                  <span className={`material-symbols-outlined text-lg ${active === item.id ? "text-[#0f5238]" : item.danger ? "text-red-600" : "text-[#707973]"}`}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </aside>
-
-          {/* Content */}
-          <div className="flex-1 bg-white rounded-2xl p-8 shadow-[0_4px_24px_rgba(15,82,56,0.06)]">
+    <div className="bg-white rounded-2xl p-8 shadow-[0_4px_24px_rgba(15,82,56,0.06)]">
             <h2 className="text-2xl font-bold text-[#002112] mb-2">Public Profile</h2>
             <p className="text-[#707973] text-sm mb-8">This information will be displayed publicly on your profile.</p>
 
@@ -116,9 +67,6 @@ export default function SettingsPage() {
                 <p className="text-xs text-[#707973] mt-2">Email addresses are verified for security and cannot be changed frequently.</p>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }

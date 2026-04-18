@@ -1,10 +1,8 @@
-import type { Metadata } from "next";
-import Image from "next/image";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Idea Validation — PakStartups",
-  description: "Turn your idea into a validated business concept with community support.",
-};
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
 const ideas = [
   { avatar: "/images/image-018.jpg", stage: "VALIDATION STAGE", stageColor: "bg-[#b7f2a0] text-[#1e5111]", author: "Ahmed K.", date: "Oct 12, 2024", title: "AgriTech Supply Chain Optimizer", desc: "Connecting small-scale farmers directly to urban markets using AI-driven logistics to...", tags: ["Logistics","AI/ML"], up: 42, comments: 12 },
@@ -14,6 +12,8 @@ const ideas = [
 ];
 
 export default function IdeasPage() {
+  const [activeTab, setActiveTab] = useState("Browse Ideas");
+
   return (
     <>
       {/* Header */}
@@ -23,19 +23,29 @@ export default function IdeasPage() {
             <h1 className="text-5xl font-black text-[#002112] tracking-tight mb-3">Idea Validation</h1>
             <p className="text-[#404943] text-lg">Turn your idea into a validated business concept with community support</p>
           </div>
-          <button className="border-2 border-[#002112] text-[#002112] px-6 py-3 rounded-lg font-bold hover:bg-[#002112] hover:text-white transition-all">
+          <Link href="/ideas/submit" className="border-2 border-[#002112] text-[#002112] px-6 py-3 rounded-lg font-bold hover:bg-[#002112] hover:text-white transition-all">
             Submit an Idea
-          </button>
+          </Link>
         </div>
       </section>
 
       {/* Tabs */}
       <div className="bg-white border-b border-[#e0e0e0]">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="flex gap-8">
-            {["Browse Ideas","Submit an Idea","My Ideas","Feasibility Tool","Survey Builder","MVP Resources"].map((tab,i)=>(
-              <button key={tab} className={`py-4 text-sm whitespace-nowrap ${i===0?"text-[#0f5238] font-bold border-b-2 border-[#0f5238]":"text-[#404943] hover:text-[#0f5238] transition-colors"}`}>{tab}</button>
+          <div className="flex gap-8 overflow-x-auto no-scrollbar">
+            {["Browse Ideas", "My Ideas"].map((tab) => (
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)}
+                className={`py-4 text-sm whitespace-nowrap transition-colors ${activeTab === tab ? "text-[#0f5238] font-bold border-b-2 border-[#0f5238]" : "text-[#404943] hover:text-[#0f5238]"}`}
+              >
+                {tab}
+              </button>
             ))}
+            <Link href="/ideas/submit" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors">Submit an Idea</Link>
+            <Link href="/ideas/feasibility" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors">Feasibility Tool</Link>
+            <Link href="/ideas/survey" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors">Survey Builder</Link>
+            <Link href="/ideas/resources" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors">MVP Resources</Link>
           </div>
         </div>
       </div>
@@ -43,6 +53,8 @@ export default function IdeasPage() {
       <div className="max-w-7xl mx-auto px-8 py-12 flex flex-col lg:flex-row gap-8 items-start">
         {/* Ideas List */}
         <div className="flex-1">
+          {activeTab === "Browse Ideas" && (
+            <>
           {/* Sort/Filter bar */}
           <div className="flex flex-wrap items-center gap-3 mb-8">
             <button className="flex items-center gap-2 border border-[#bfc9c1] px-4 py-2 rounded-lg text-sm font-medium text-[#404943] hover:border-[#0f5238] transition-all">
@@ -92,6 +104,19 @@ export default function IdeasPage() {
               </div>
             ))}
           </div>
+          </>
+          )}
+
+          {activeTab === "My Ideas" && (
+            <div className="bg-white rounded-xl p-12 text-center border border-[#e0e0e0]">
+              <span className="material-symbols-outlined text-4xl text-[#bfc9c1] mb-2">lightbulb</span>
+              <h3 className="text-xl font-bold text-[#002112]">No Ideas Submitted</h3>
+              <p className="text-[#404943] mt-2 mb-6">You haven't submitted any ideas for community validation yet.</p>
+              <Link href="/ideas/submit" className="bg-[#0f5238] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#2d6a4f] transition-all">
+                Submit Your First Idea
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}

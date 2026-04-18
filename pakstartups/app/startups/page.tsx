@@ -1,11 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 
-export const metadata: Metadata = {
-  title: "Startup Directory — PakStartups",
-  description: "Discover Pakistan's most innovative startups across FinTech, AgriTech, HealthTech, EdTech and more.",
-};
+
 
 const startups = [
   { name: "FinFlow", desc: "Revolutionizing digital payments for underserved merchants across Punjab.", stage: "Growth", city: "Lahore", category: "FinTech", slug: "finflow", logo: "/images/image-055.jpg" },
@@ -27,6 +27,8 @@ const stageColors: Record<string, string> = {
 };
 
 export default function StartupsPage() {
+  const [activeFilter, setActiveFilter] = useState("All Startups");
+
   return (
     <>
       {/* Page Header */}
@@ -54,11 +56,12 @@ export default function StartupsPage() {
         {/* Filter Tabs & Result Count */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
           <div className="flex flex-wrap gap-2">
-            {["All Startups", "Recently Added", "Trending", "By Industry"].map((tab, i) => (
+            {["All Startups", "Recently Added", "Trending", "By Industry"].map((tab) => (
               <button
                 key={tab}
+                onClick={() => setActiveFilter(tab)}
                 className={
-                  i === 0
+                  activeFilter === tab
                     ? "px-6 py-2.5 rounded-full bg-[#0f5238] text-white font-bold transition-colors"
                     : "px-6 py-2.5 rounded-full bg-[#cff7dd] text-[#002112] hover:bg-[#caf2d7] transition-colors font-semibold"
                 }
