@@ -5,6 +5,8 @@ import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { sendConnectionRequest } from "@/lib/services/match";
 
 type Startup = {
   id: string;
@@ -25,10 +27,12 @@ type Startup = {
 
 export default function StartupProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const router = useRouter();
   const [startup, setStartup] = useState<Startup | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
 
   useEffect(() => {
     const fetchStartup = async () => {
@@ -70,6 +74,19 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
 
   const isOwner = user?.uid === startup.ownerId;
 
+  const handleConnect = async () => {
+    if (!user) {
+      router.push(`/auth/signup?next=/startups/${slug}`);
+      return;
+    }
+    if (!startup?.ownerId || !startup.ownerName) return;
+    await sendConnectionRequest(
+      { uid: user.uid, name: profile?.fullName || user.displayName || user.email || "Unknown" },
+      { uid: startup.ownerId, name: startup.ownerName }
+    );
+    setRequestSent(true);
+  };
+
   return (
     <main className="max-w-8xl mx-auto px-8 py-8 bg-[#e8ffee] min-h-screen">
       {/* Header */}
@@ -97,9 +114,12 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
                 <span className="material-symbols-outlined text-xl">edit</span> Edit Startup
               </Link>
             ) : (
-              <button className="flex items-center gap-2 px-6 py-3 bg-[#0f5238] text-white rounded-lg font-bold shadow-xl hover:-translate-y-[2px] transition-all active:scale-95">
+              <button onClick={() => void handleConnect()} className="flex items-center gap-2 px-6 py-3 bg-[#0f5238] text-white rounded-lg font-bold shadow-xl hover:-translate-y-[2px] transition-all active:scale-95">
                 <span className="material-symbols-outlined text-xl">connect_without_contact</span> Connect with Founder
               </button>
+            )}
+            {requestSent && (
+              <span className="flex items-center px-4 py-3 bg-[#d5fde2] text-[#0f5238] rounded-lg font-bold text-sm">Connection request sent</span>
             )}
             {startup.website && (
               <a href={startup.website} target="_blank" rel="noopener noreferrer"
@@ -179,7 +199,7 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
           <div className="bg-[#0f5238] p-8 rounded-xl text-white">
             <h4 className="font-black text-lg mb-3">Interested in connecting?</h4>
             <p className="text-[#a8e7c5] text-sm mb-4">Reach out to {startup.ownerName} to explore collaborations, investment, or partnerships.</p>
-            <button className="w-full bg-white text-[#0f5238] font-bold py-3 rounded-lg text-sm hover:bg-[#d5fde2] transition-colors">
+            <button onClick={() => void handleConnect()} className="w-full bg-white text-[#0f5238] font-bold py-3 rounded-lg text-sm hover:bg-[#d5fde2] transition-colors">
               Send Connection Request
             </button>
           </div>

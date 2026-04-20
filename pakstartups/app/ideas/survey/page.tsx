@@ -1,0 +1,1 @@
+export default function SurveyBuilderPage() { return <main className="max-w-4xl mx-auto px-8 py-20"><h1 className="text-4xl font-black text-[#002112]">Survey Builder</h1><p className="mt-4 text-[#404943]">Create quick validation surveys and share them with potential users.</p></main>; }

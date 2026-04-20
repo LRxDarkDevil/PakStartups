@@ -1,0 +1,1 @@
+export default function KnowledgeGuidesPage() { return <main className="max-w-4xl mx-auto px-8 py-20"><h1 className="text-4xl font-black text-[#002112]">Learning Guides</h1><p className="mt-4 text-[#404943]">Founder playbooks, registration checklists, and practical guides for building in Pakistan.</p></main>; }

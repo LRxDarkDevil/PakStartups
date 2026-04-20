@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getUpcomingEvents, getPastEvents, getWeeklyMeetups, getFeaturedEvent, rsvpEvent, type EventItem } from "@/lib/services/events";
 import { auth } from "@/lib/firebase/config";
 import { onAuthStateChanged, type User } from "firebase/auth";
+import { useAuth } from "@/lib/context/AuthContext";
+import { arrayRemove, arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 
 const weekDays = ["S","M","T","W","T","F","S"];
-const calDays: (number | null)[] = [null,null,null,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30];
 
 type TabType = "Upcoming" | "Past Events" | "Weekly Meetups";
 
@@ -26,12 +29,18 @@ function SkeletonEvent() {
 }
 
 export default function EventsPage() {
+  const router = useRouter();
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("Upcoming");
   const [events, setEvents] = useState<EventItem[]>([]);
   const [featured, setFeatured] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [rsvped, setRsvped] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [calendarOffset, setCalendarOffset] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setUser);
@@ -63,7 +72,11 @@ export default function EventsPage() {
   }, [activeTab]);
 
   const handleRsvp = async (event: EventItem) => {
-    if (!user || !event.id) return;
+    if (!user) {
+      router.push("/auth/signup");
+      return;
+    }
+    if (!event.id) return;
     const didRsvp = await rsvpEvent(event.id, user.uid);
     setRsvped((prev) => {
       const s = new Set(prev);
@@ -71,6 +84,42 @@ export default function EventsPage() {
       return s;
     });
   };
+
+  const handleSave = async (eventId: string) => {
+    if (!user) {
+      router.push("/auth/signup");
+      return;
+    }
+    const ref = doc(db, "users", user.uid);
+    const isSaved = (profile?.savedEventIds ?? []).includes(eventId);
+    await updateDoc(ref, {
+      savedEventIds: isSaved ? arrayRemove(eventId) : arrayUnion(eventId),
+    });
+    setSaved((prev) => {
+      const next = new Set(prev);
+      if (isSaved) next.delete(eventId); else next.add(eventId);
+      return next;
+    });
+  };
+
+  const handleShare = async (event: EventItem) => {
+    const url = `${window.location.origin}/events/view?id=${event.id}`;
+    if (navigator.share) {
+      await navigator.share({ title: event.title, url });
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+  };
+
+  const filteredEvents = events.filter((event) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [event.title, event.location, event.organizerName, event.type, event.desc].join(" ").toLowerCase().includes(q);
+  });
+
+  const calendarDate = new Date();
+  calendarDate.setMonth(calendarDate.getMonth() + calendarOffset);
+  const calendarDays = buildCalendarDays(calendarDate);
 
   const formatDate = (event: EventItem) => {
     if (!event.dateTs) return { month: "TBD", day: "?" };
@@ -103,7 +152,7 @@ export default function EventsPage() {
       {/* Tabs */}
       <div className="bg-white border-b border-[#e0e0e0]">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="flex gap-8 overflow-x-auto no-scrollbar">
+          <div className="flex flex-wrap items-center gap-4 overflow-x-auto no-scrollbar">
             {(["Upcoming", "Past Events", "Weekly Meetups"] as TabType[]).map((tab) => (
               <button
                 key={tab}
@@ -113,6 +162,10 @@ export default function EventsPage() {
                 {tab}
               </button>
             ))}
+            <div className="relative ml-auto min-w-[260px] flex-1 md:flex-none md:w-80">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707973] text-sm">search</span>
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search events..." className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#e0e0e0] outline-none focus:ring-2 focus:ring-[#0f5238]/30" />
+            </div>
             <Link href="/events/propose" className="py-4 text-[#404943] hover:text-[#0f5238] transition-colors whitespace-nowrap ml-auto">
               Propose an Event
             </Link>
@@ -175,11 +228,11 @@ export default function EventsPage() {
             </div>
           ) : (
             <>
-              {activeTab === "Upcoming" && events.length > 0 && (
+              {activeTab === "Upcoming" && filteredEvents.length > 0 && (
                 <h3 className="text-xl font-black text-[#002112] mb-6">More Upcoming Events</h3>
               )}
               <div className="space-y-4">
-                {events.map((e) => {
+                {filteredEvents.map((e) => {
                   const dateInfo = formatDate(e);
                   return (
                     <div key={e.id} className="bg-white rounded-xl p-6 flex items-center gap-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)] hover:shadow-[0_8px_32px_rgba(15,82,56,0.1)] transition-all">
@@ -187,7 +240,7 @@ export default function EventsPage() {
                         <div className="text-xs font-bold uppercase">{dateInfo.month}</div>
                         <div className="text-2xl font-black">{dateInfo.day}</div>
                       </div>
-                      <div className="flex-1">
+                      <div onClick={() => router.push(`/events/view?id=${e.id ?? ""}`)} role="button" tabIndex={0} className="flex-1 cursor-pointer">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-bold text-[#002112]">{e.title}</span>
                           <span className="px-2 py-0.5 bg-[#d5fde2] text-[#0f5238] text-[10px] font-bold rounded uppercase">{e.type}</span>
@@ -195,10 +248,10 @@ export default function EventsPage() {
                         <p className="text-[#404943] text-sm flex items-center gap-1">
                           <span className="material-symbols-outlined text-sm">location_on</span>{e.location}
                         </p>
-                        <p className="text-[#404943] text-xs mt-1 flex items-center gap-1">
-                          <div className="w-4 h-4 rounded-full bg-[#b4ef9d] shrink-0" />
+                        <button type="button" onClick={(event) => { event.stopPropagation(); router.push(`/profile/${e.organizerId}/events`); }} className="text-[#404943] text-xs mt-1 flex items-center gap-1 hover:text-[#0f5238] transition-colors">
+                          <span className="w-4 h-4 rounded-full bg-[#b4ef9d] shrink-0 inline-block" />
                           Organized by {e.organizerName}
-                        </p>
+                        </button>
                       </div>
                       <div className="text-right shrink-0">
                         <button
@@ -208,6 +261,10 @@ export default function EventsPage() {
                           {!user ? "RSVP" : rsvped.has(e.id!) ? "✓ RSVP'd" : "RSVP"}
                         </button>
                         <p className="text-xs text-[#707973]">{e.rsvpCount} attending</p>
+                        <div className="mt-2 flex items-center gap-2 justify-end">
+                          <button onClick={() => void handleSave(e.id ?? "")} className="text-xs font-bold text-[#0f5238] hover:underline">{saved.has(e.id ?? "") || (profile?.savedEventIds ?? []).includes(e.id ?? "") ? "Saved" : "Save"}</button>
+                          <button onClick={() => void handleShare(e)} className="text-xs font-bold text-[#0f5238] hover:underline">Share</button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -221,12 +278,12 @@ export default function EventsPage() {
         <div className="w-full md:w-72 space-y-6">
           <div className="bg-white rounded-xl p-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)]">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-[#002112]">{new Date().toLocaleString("en", { month: "long", year: "numeric" })}</h3>
+                <h3 className="font-bold text-[#002112]">{calendarDate.toLocaleString("en", { month: "long", year: "numeric" })}</h3>
               <div className="flex gap-1">
-                <button className="w-7 h-7 rounded-full hover:bg-[#d5fde2] flex items-center justify-center transition-colors">
+                <button onClick={() => setCalendarOffset((offset) => offset - 1)} className="w-7 h-7 rounded-full hover:bg-[#d5fde2] flex items-center justify-center transition-colors">
                   <span className="material-symbols-outlined text-sm">chevron_left</span>
                 </button>
-                <button className="w-7 h-7 rounded-full hover:bg-[#d5fde2] flex items-center justify-center transition-colors">
+                <button onClick={() => setCalendarOffset((offset) => offset + 1)} className="w-7 h-7 rounded-full hover:bg-[#d5fde2] flex items-center justify-center transition-colors">
                   <span className="material-symbols-outlined text-sm">chevron_right</span>
                 </button>
               </div>
@@ -237,10 +294,10 @@ export default function EventsPage() {
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
-              {calDays.map((d, i) => (
-                <div key={i} className={`text-center text-xs py-1 rounded-full cursor-pointer transition-colors ${d === new Date().getDate() ? "bg-[#0f5238] text-white font-black" : d ? "hover:bg-[#d5fde2] text-[#002112]" : ""}`}>
+              {calendarDays.map((d, i) => (
+                <button key={i} onClick={() => d && setSelectedDay(d)} className={`text-center text-xs py-1 rounded-full cursor-pointer transition-colors ${d === selectedDay ? "bg-[#0f5238] text-white font-black" : d === new Date().getDate() && calendarOffset === 0 ? "bg-[#b4ef9d] text-[#0f5238] font-black" : d ? "hover:bg-[#d5fde2] text-[#002112]" : ""}`}>
                   {d}
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -256,4 +313,15 @@ export default function EventsPage() {
       </div>
     </>
   );
+}
+
+function buildCalendarDays(date: Date): (number | null)[] {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i += 1) cells.push(null);
+  for (let day = 1; day <= totalDays; day += 1) cells.push(day);
+  return cells;
 }

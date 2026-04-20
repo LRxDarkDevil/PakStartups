@@ -1,0 +1,1 @@
+export default function KnowledgeReportsPage() { return <main className="max-w-4xl mx-auto px-8 py-20"><h1 className="text-4xl font-black text-[#002112]">Market Intelligence</h1><p className="mt-4 text-[#404943]">Sector reports and research snapshots for the Pakistan market.</p></main>; }

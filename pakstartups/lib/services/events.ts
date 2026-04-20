@@ -1,7 +1,7 @@
 // lib/services/events.ts
 import {
   collection, addDoc, getDocs, doc, updateDoc, setDoc, deleteDoc,
-  query, where, orderBy, limit, serverTimestamp, getDoc, Timestamp,
+  query, where, orderBy, limit, serverTimestamp, getDoc, Timestamp, increment,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
@@ -39,14 +39,28 @@ export async function getUpcomingEvents(): Promise<EventItem[]> {
 
 export async function getPastEvents(): Promise<EventItem[]> {
   const now = Timestamp.now();
-  const q = query(
+  const pastStatus = query(
     collection(db, COL),
     where("status", "==", "past"),
     orderBy("dateTs", "desc"),
     limit(20)
   );
-  const snaps = await getDocs(q);
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as EventItem);
+  const approvedPast = query(
+    collection(db, COL),
+    where("status", "==", "approved"),
+    where("dateTs", "<", now),
+    orderBy("dateTs", "desc"),
+    limit(20)
+  );
+
+  const [statusSnap, approvedSnap] = await Promise.all([getDocs(pastStatus), getDocs(approvedPast)]);
+  const merged = new Map<string, EventItem>();
+  [...statusSnap.docs, ...approvedSnap.docs].forEach((d) => merged.set(d.id, { id: d.id, ...d.data() } as EventItem));
+  return [...merged.values()].sort((a, b) => {
+    const aDate = a.dateTs ? a.dateTs.toMillis() : 0;
+    const bDate = b.dateTs ? b.dateTs.toMillis() : 0;
+    return bDate - aDate;
+  });
 }
 
 export async function getWeeklyMeetups(): Promise<EventItem[]> {
@@ -88,11 +102,11 @@ export async function rsvpEvent(eventId: string, uid: string) {
   const existing = await getDoc(rsvpRef);
   if (existing.exists()) {
     await deleteDoc(rsvpRef);
-    await updateDoc(doc(db, COL, eventId), { rsvpCount: Math.max(0, (existing.data().dummy ?? 1) - 1) });
+    await updateDoc(doc(db, COL, eventId), { rsvpCount: increment(-1) });
     return false; // un-rsvp'd
   } else {
     await setDoc(rsvpRef, { uid, rsvpAt: serverTimestamp() });
-    await updateDoc(doc(db, COL, eventId), { rsvpCount: (await getDoc(doc(db, COL, eventId))).data()!.rsvpCount + 1 });
+    await updateDoc(doc(db, COL, eventId), { rsvpCount: increment(1) });
     return true; // rsvp'd
   }
 }

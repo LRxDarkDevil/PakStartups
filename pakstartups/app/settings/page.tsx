@@ -11,7 +11,7 @@ const ROLES = ["Founder","Freelancer","Student","Investor","Mentor","Tech Lead"]
 
 export default function SettingsPage() {
   const { user, profile } = useAuth();
-  const [form, setForm] = useState({ fullName: "", bio: "", city: "", role: "" });
+  const [form, setForm] = useState({ fullName: "", bio: "", city: "", role: "", photoURL: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -24,6 +24,7 @@ export default function SettingsPage() {
         bio: profile.bio || "",
         city: profile.city || "",
         role: profile.role || "founder",
+        photoURL: profile.photoURL || "",
       });
     }
   }, [profile]);
@@ -40,6 +41,7 @@ export default function SettingsPage() {
         bio: form.bio.trim(),
         city: form.city,
         role: form.role.toLowerCase(),
+          photoURL: form.photoURL.trim() || null,
         updatedAt: serverTimestamp(),
       });
       setSaved(true);
@@ -74,11 +76,17 @@ export default function SettingsPage() {
             : <span className="material-symbols-outlined text-[#0f5238] text-4xl">person</span>
           }
         </div>
-        <div className="flex gap-3">
-          <span className="px-4 py-2 border border-[#bfc9c1] rounded-lg text-sm font-bold text-[#707973] cursor-not-allowed opacity-50" title="Avatar changes via Google Profile">
-            Change Avatar
-          </span>
-        </div>
+      </div>
+
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-[#404943] mb-2">Avatar URL</label>
+        <input
+          value={form.photoURL}
+          onChange={(e) => set("photoURL", e.target.value)}
+          placeholder="Paste a Cloudinary image URL"
+          className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none transition-all"
+        />
+        <p className="text-xs text-[#707973] mt-2">Store your avatar URL in Firestore. Cloudinary links work best.</p>
       </div>
 
       {saveError && (

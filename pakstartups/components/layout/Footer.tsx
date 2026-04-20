@@ -7,7 +7,7 @@ const footerLinks = {
     { label: "Co-Founder Matching", href: "/match" },
     { label: "B2B Marketplace", href: "/b2b" },
     { label: "Ecosystem Map", href: "/ecosystem" },
-    { label: "Startup Directory", href: "/startups" },
+    { label: "Submit Startup", href: "/startups/submit" },
   ],
   Community: [
     { label: "Reddit", href: "https://reddit.com/r/PakStartups" },
@@ -20,6 +20,7 @@ const footerLinks = {
     { label: "Knowledge Hub", href: "/knowledge" },
     { label: "Legal Templates", href: "/knowledge" },
     { label: "Blog & Insights", href: "/blog" },
+    { label: "Help / FAQ", href: "/faq" },
     { label: "Idea Validation", href: "/ideas" },
     { label: "About Us", href: "/about" },
   ],
@@ -45,6 +46,9 @@ export default function Footer() {
             <p className="text-sm text-[#2d6a4f] leading-relaxed mb-8">
               Building the definitive platform for Pakistan&apos;s entrepreneurial ecosystem through data, community, and capital.
             </p>
+            <p className="text-sm text-[#2d6a4f] mb-6">
+              Support: <a href="mailto:hello@pakstartups.org" className="font-semibold hover:text-[#0f5238] transition-colors">hello@pakstartups.org</a>
+            </p>
             {/* Social icons */}
             <div className="flex gap-4">
               <a href="https://reddit.com/r/PakStartups" aria-label="Reddit" className="text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
@@ -69,7 +73,7 @@ export default function Footer() {
                 {category}
               </h4>
               <ul className="space-y-3">
-                {links.slice(0, 4).map((link) => (
+                {links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
@@ -87,7 +91,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-[#bfc9c1]/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-[#2d6a4f] uppercase tracking-widest">
-            © 2024 PakStartups. Cultivating the next generation of founders.
+            © {new Date().getFullYear()} PakStartups. Cultivating the next generation of founders.
           </p>
           <div className="flex gap-6">
             <Link href="/privacy" className="text-xs text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
@@ -96,7 +100,7 @@ export default function Footer() {
             <Link href="/terms" className="text-xs text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
               Terms of Service
             </Link>
-            <Link href="/contact" className="text-xs text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
+            <Link href="mailto:hello@pakstartups.org" className="text-xs text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
               Contact
             </Link>
           </div>

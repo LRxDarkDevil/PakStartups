@@ -4,12 +4,17 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getStartups, type Startup } from "@/lib/services/startups";
+import { DEFAULT_SITE_FILTERS, getSiteFilters } from "@/lib/services/siteConfig";
 
 const stageColors: Record<string, string> = {
   Idea: "bg-[#b7f2a0] text-[#032100]",
   MVP: "bg-[#b7f2a0] text-[#032100]",
   Growth: "bg-[#b7f2a0] text-[#032100]",
   Scaling: "bg-[#b7f2a0] text-[#032100]",
+};
+
+const categoryLabels: Record<string, string> = {
+  Cleantech: "Sustainability Related",
 };
 
 function SkeletonCard() {
@@ -27,16 +32,28 @@ function SkeletonCard() {
 }
 
 const FILTERS = ["All Startups", "Recently Added", "Trending", "By Industry"];
-const CATEGORIES = ["All", "FinTech", "AgriTech", "HealthTech", "EdTech", "E-Commerce", "SaaS", "Cleantech"];
-const CITIES = ["All Cities", "Lahore", "Karachi", "Islamabad", "Faisalabad", "Sialkot", "Peshawar"];
+const STAGES = ["All Stages", "Idea", "MVP", "Growth", "Scaling"];
 
 export default function StartupsPage() {
   const [activeFilter, setActiveFilter] = useState("All Startups");
+  const [activeStage, setActiveStage] = useState("All Stages");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeCity, setActiveCity] = useState("All Cities");
   const [searchQuery, setSearchQuery] = useState("");
   const [startups, setStartups] = useState<Startup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cities, setCities] = useState<string[]>(DEFAULT_SITE_FILTERS.cities);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_SITE_FILTERS.categories);
+
+  useEffect(() => {
+    getSiteFilters().then((filters) => {
+      setCities(filters.cities);
+      setCategories(filters.categories);
+    }).catch(() => {
+      setCities(DEFAULT_SITE_FILTERS.cities);
+      setCategories(DEFAULT_SITE_FILTERS.categories);
+    });
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -49,7 +66,9 @@ export default function StartupsPage() {
   const displayed = startups.filter((s) => {
     if (activeCategory !== "All" && s.category !== activeCategory) return false;
     if (activeCity !== "All Cities" && s.city !== activeCity) return false;
-    if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (activeStage !== "All Stages" && s.stage !== activeStage) return false;
+    const q = searchQuery.trim().toLowerCase();
+    if (q && ![s.name, s.desc, s.category, s.city, s.stage].join(" ").toLowerCase().includes(q)) return false;
     return true;
   });
 
@@ -113,6 +132,20 @@ export default function StartupsPage() {
                     className="w-full pl-10 pr-4 py-3 bg-white border-none rounded-lg focus:ring-2 focus:ring-[#0f5238]/40 text-[#002112] placeholder:text-[#707973] outline-none"
                   />
                 </div>
+                <div className="mt-4">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#404943] mb-2">Stage</label>
+                  <div className="flex flex-wrap gap-2">
+                    {STAGES.map((stage) => (
+                      <button
+                        key={stage}
+                        onClick={() => setActiveStage(stage)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${activeStage === stage ? "bg-[#0f5238] text-white" : "bg-white text-[#0f5238] hover:bg-[#d5fde2]"}`}
+                      >
+                        {stage}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-8">
@@ -120,13 +153,13 @@ export default function StartupsPage() {
                 <div>
                   <h3 className="font-bold text-[#002112] mb-4">Category</h3>
                   <div className="flex flex-wrap gap-2">
-                    {CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
                         className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${activeCategory === cat ? "bg-[#0f5238] text-white" : "bg-white text-[#0f5238] hover:bg-[#d5fde2]"}`}
                       >
-                        {cat}
+                        {categoryLabels[cat] ?? cat}
                       </button>
                     ))}
                   </div>
@@ -140,7 +173,8 @@ export default function StartupsPage() {
                     onChange={(e) => setActiveCity(e.target.value)}
                     className="w-full py-3 px-3 bg-white border-none rounded-lg focus:ring-2 focus:ring-[#0f5238]/40 outline-none text-[#002112]"
                   >
-                    {CITIES.map((c) => <option key={c}>{c}</option>)}
+                    <option>All Cities</option>
+                    {cities.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
@@ -180,7 +214,7 @@ export default function StartupsPage() {
                         </div>
                         <h3 className="text-xl font-extrabold text-[#002112] mb-2 group-hover:text-[#0f5238] transition-colors">{s.name}</h3>
                         <p className="text-[#404943] text-sm line-clamp-2 mb-4">{s.desc}</p>
-                        <span className="text-xs font-bold text-[#0f5238] bg-[#d5fde2] px-2.5 py-1 rounded-full">{s.category}</span>
+                        <span className="text-xs font-bold text-[#0f5238] bg-[#d5fde2] px-2.5 py-1 rounded-full">{categoryLabels[s.category] ?? s.category}</span>
                       </div>
                     </div>
                   </Link>

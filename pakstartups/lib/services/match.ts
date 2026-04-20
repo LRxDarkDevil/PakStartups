@@ -44,6 +44,12 @@ export async function getMatchProfiles(role?: string, city?: string): Promise<Ma
   return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as MatchProfile);
 }
 
+export async function getMatchProfilesByIds(ids: string[]): Promise<MatchProfile[]> {
+  if (ids.length === 0) return [];
+  const snaps = await getDocs(query(collection(db, PROFILES_COL), where("uid", "in", ids.slice(0, 10))));
+  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as MatchProfile);
+}
+
 export async function getMyConnections(uid: string): Promise<ConnectionRequest[]> {
   const q = query(
     collection(db, CONNECTIONS_COL),

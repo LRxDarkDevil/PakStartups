@@ -1,0 +1,1 @@
+export default function FeasibilityPage() { return <main className="max-w-4xl mx-auto px-8 py-20"><h1 className="text-4xl font-black text-[#002112]">Feasibility Tool</h1><p className="mt-4 text-[#404943]">The premium validation engine is being rebuilt. For now, use the idea board and survey builder to gather feedback.</p></main>; }

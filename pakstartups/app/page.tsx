@@ -59,18 +59,17 @@ const community = [
   },
   {
     icon: "chat",
-    title: "Discord",
-    desc: "Real-time networking, resource sharing, and late-night hustle sessions.",
-    cta: "Join the Server",
-    href: "#",
-    iconFilled: true,
+    title: "Help Center",
+    desc: "Find answers, guides, and support when you need it most.",
+    cta: "Open FAQ",
+    href: "/faq",
   },
   {
     icon: "public",
-    title: "LinkedIn",
-    desc: "Professional insights, ecosystem news, and official platform announcements.",
-    cta: "Follow Page",
-    href: "#",
+    title: "Email Support",
+    desc: "Reach the PakStartups team directly for partnerships or help.",
+    cta: "hello@pakstartups.org",
+    href: "mailto:hello@pakstartups.org",
   },
 ];
 
@@ -159,6 +158,35 @@ export default function HomePage() {
               </span>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* About / Purpose */}
+      <section className="bg-[#f4fff7] py-24 px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0f5238] mb-4">About PakStartups</p>
+            <h2 className="text-4xl font-black text-[#002112] tracking-tight mb-6">A practical home base for founders building in Pakistan.</h2>
+            <p className="text-[#404943] text-lg leading-relaxed mb-6">
+              PakStartups exists to make the ecosystem easier to navigate: discover startups, find co-founders, validate ideas, and connect with organizations that can actually help you move forward.
+            </p>
+            <p className="text-[#404943] text-lg leading-relaxed">
+              The goal is simple. Less scattered information, more useful action.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              ["Discover", "Startups, stories, and ecosystem support in one place."],
+              ["Connect", "Meet founders, mentors, and service providers."],
+              ["Validate", "Tools and resources to pressure-test ideas early."],
+              ["Grow", "Events, B2B, and community paths that stay useful."],
+            ].map(([title, desc]) => (
+              <div key={title} className="bg-white rounded-2xl p-5 shadow-[0_10px_30px_rgba(15,82,56,0.06)] border border-[#dbeee2]">
+                <h3 className="font-black text-[#0f5238] mb-2">{title}</h3>
+                <p className="text-sm text-[#404943] leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

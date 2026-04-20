@@ -14,6 +14,7 @@ const sideNav = [
   { label: "Events Mgt.", icon: "event", href: "/admin/events" },
   { label: "Volunteer Apps", icon: "volunteer_activism", href: "/admin/volunteers" },
   { label: "Reports", icon: "description", href: "/admin/reports" },
+  { label: "Site Config", icon: "tune", href: "/admin/settings" },
 ];
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {

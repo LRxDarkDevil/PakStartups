@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getMatchProfiles, sendConnectionRequest, type MatchProfile } from "@/lib/services/match";
+import { useRouter } from "next/navigation";
+import { arrayRemove, arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { getMatchProfiles, getMatchProfilesByIds, getMyConnections, getReceivedRequests, sendConnectionRequest, type MatchProfile } from "@/lib/services/match";
 import { auth } from "@/lib/firebase/config";
 import { onAuthStateChanged, type User } from "firebase/auth";
+import { useAuth } from "@/lib/context/AuthContext";
+import { db } from "@/lib/firebase/config";
 
 const ROLES = ["Founder", "Freelancer", "Student", "Tech Lead", "Mentor"];
-const CITIES = ["All Cities", "Lahore", "Karachi", "Islamabad", "Faisalabad", "Peshawar"];
+const CITIES = ["All Cities", "Lahore", "Karachi", "Islamabad", "Faisalabad", "Peshawar", "Rawalpindi", "Multan", "Hyderabad", "Gwadar"];
 
 const roleColors: Record<string, string> = {
   Founder: "bg-[#2d6a4f] text-[#a8e7c5]",
@@ -39,14 +43,21 @@ function SkeletonProfile() {
 type TabType = "Browse Matches" | "My Requests" | "Received Requests" | "Saved Profiles";
 
 export default function MatchPage() {
+  const router = useRouter();
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("Browse Matches");
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedCity, setSelectedCity] = useState("All Cities");
+  const [searchQuery, setSearchQuery] = useState("");
   const [profiles, setProfiles] = useState<MatchProfile[]>([]);
+  const [savedProfiles, setSavedProfiles] = useState<MatchProfile[]>([]);
+  const [myRequests, setMyRequests] = useState<MatchProfile[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<MatchProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [connecting, setConnecting] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState<Set<string>>(new Set());
+  const [bookmarking, setBookmarking] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setUser);
@@ -54,16 +65,56 @@ export default function MatchPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab !== "Browse Matches") return;
     setLoading(true);
-    getMatchProfiles(selectedRole || undefined, selectedCity !== "All Cities" ? selectedCity : undefined)
-      .then(setProfiles)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [activeTab, selectedRole, selectedCity]);
+    (async () => {
+      try {
+        if (activeTab === "Browse Matches") {
+          const data = await getMatchProfiles(selectedRole || undefined, selectedCity !== "All Cities" ? selectedCity : undefined);
+          setProfiles(data);
+        } else if (activeTab === "Saved Profiles" && profile?.savedMatchProfileIds?.length) {
+          setSavedProfiles(await getMatchProfilesByIds(profile.savedMatchProfileIds));
+        } else if (activeTab === "My Requests" && user) {
+          const requests = await getMyConnections(user.uid);
+          const ids = requests.map((r) => r.toUid);
+          setMyRequests(await getMatchProfilesByIds(ids));
+        } else if (activeTab === "Received Requests" && user) {
+          const requests = await getReceivedRequests(user.uid);
+          const ids = requests.map((r) => r.fromUid);
+          setReceivedRequests(await getMatchProfilesByIds(ids));
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [activeTab, selectedRole, selectedCity, profile?.savedMatchProfileIds?.join(","), user?.uid]);
+
+  const handleBookmark = async (profileId: string) => {
+    if (!user) {
+      router.push("/auth/signup");
+      return;
+    }
+    setBookmarking((prev) => new Set([...prev, profileId]));
+    const ref = doc(db, "users", user.uid);
+    const savedIds = profile?.savedMatchProfileIds ?? [];
+    const alreadySaved = savedIds.includes(profileId);
+    await updateDoc(ref, {
+      savedMatchProfileIds: alreadySaved ? arrayRemove(profileId) : arrayUnion(profileId),
+    });
+    setBookmarking((prev) => {
+      const next = new Set(prev);
+      next.delete(profileId);
+      return next;
+    });
+  };
 
   const handleConnect = async (profile: MatchProfile) => {
-    if (!user || !profile.id) return;
+    if (!user) {
+      router.push("/auth/signup");
+      return;
+    }
+    if (!profile.id) return;
     const id = profile.id;
     setConnecting((prev) => new Set([...prev, id]));
     try {
@@ -77,6 +128,28 @@ export default function MatchPage() {
     } finally {
       setConnecting((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
+  };
+
+  const profileCards = activeTab === "Saved Profiles"
+    ? savedProfiles
+    : activeTab === "My Requests"
+      ? myRequests
+      : activeTab === "Received Requests"
+        ? receivedRequests
+        : profiles;
+
+  const filteredProfiles = profileCards.filter((p) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [p.name, p.city, p.role, p.looking, p.skills.join(" ")].join(" ").toLowerCase().includes(q);
+  });
+
+  const openProfile = (uid: string) => {
+    if (!user) {
+      router.push("/auth/signup");
+      return;
+    }
+    router.push(`/profile/${uid}`);
   };
 
   return (
@@ -112,7 +185,7 @@ export default function MatchPage() {
                   <label className="block text-sm font-bold text-[#002112] mb-3 uppercase tracking-wider">Search</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707973]">search</span>
-                    <input type="text" placeholder="Name or keyword..." className="w-full pl-10 pr-4 py-3 bg-[#c4ecd2] border-none rounded-lg focus:ring-2 focus:ring-[#0f5238]/40 focus:bg-white transition-all outline-none" />
+                    <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} type="text" placeholder="Name or keyword..." className="w-full pl-10 pr-4 py-3 bg-[#c4ecd2] border-none rounded-lg focus:ring-2 focus:ring-[#0f5238]/40 focus:bg-white transition-all outline-none" />
                   </div>
                 </div>
 
@@ -152,7 +225,7 @@ export default function MatchPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => <SkeletonProfile key={i} />)}
                 </div>
-              ) : profiles.length === 0 ? (
+              ) : filteredProfiles.length === 0 ? (
                 <div className="text-center py-24 bg-white rounded-xl border border-[#e0e0e0]">
                   <span className="material-symbols-outlined text-6xl text-[#bfc9c1] mb-4">group_off</span>
                   <h3 className="text-2xl font-bold text-[#002112]">No profiles found</h3>
@@ -160,8 +233,8 @@ export default function MatchPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {profiles.map((p) => (
-                    <div key={p.id} className="bg-white p-8 rounded-xl shadow-[0_8px_32px_rgba(15,82,56,0.04)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.08)] transition-all flex flex-col h-full">
+                  {filteredProfiles.map((p) => (
+                    <div key={p.id} onClick={() => p.uid && openProfile(p.uid)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") p.uid && openProfile(p.uid); }} className="bg-white p-8 rounded-xl shadow-[0_8px_32px_rgba(15,82,56,0.04)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.08)] transition-all flex flex-col h-full cursor-pointer">
                       <div className="flex items-start justify-between mb-6">
                         <div className="w-14 h-14 rounded-full bg-[#b4ef9d] overflow-hidden flex items-center justify-center">
                           <span className="material-symbols-outlined text-[#0f5238] text-2xl">person</span>
@@ -189,7 +262,7 @@ export default function MatchPage() {
                         >
                           {connecting.has(p.id!) ? "Sending..." : connected.has(p.id!) ? "Request Sent ✓" : "Connect"}
                         </button>
-                        <button className="p-2.5 border border-[#bfc9c1]/30 rounded-lg text-[#0f5238] hover:bg-[#d5fde2] transition-colors">
+                        <button onClick={(e) => { e.stopPropagation(); if (p.id) void handleBookmark(p.id); }} className="p-2.5 border border-[#bfc9c1]/30 rounded-lg text-[#0f5238] hover:bg-[#d5fde2] transition-colors">
                           <span className="material-symbols-outlined">bookmark</span>
                         </button>
                       </div>
@@ -209,9 +282,9 @@ export default function MatchPage() {
             <h3 className="text-2xl font-bold text-[#002112]">{activeTab}</h3>
             {!user ? (
               <>
-                <p className="text-[#404943] mt-2 mb-6">Sign in to view your {activeTab.toLowerCase()}.</p>
-                <Link href="/auth/login" className="px-8 py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-all inline-block">
-                  Sign In
+                <p className="text-[#404943] mt-2 mb-6">Create an account to view your {activeTab.toLowerCase()}.</p>
+                <Link href="/auth/signup" className="px-8 py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-all inline-block">
+                  Sign Up
                 </Link>
               </>
             ) : (

@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
 
 export type UserProfile = {
@@ -23,7 +23,16 @@ export type UserProfile = {
   city: string;
   bio: string;
   skills: string[];
+  interests?: string[];
   socialLinks: Record<string, string>;
+  savedMatchProfileIds?: string[];
+  savedStartupIds?: string[];
+  savedOrganizationIds?: string[];
+  savedB2BIds?: string[];
+  savedEventIds?: string[];
+  savedIdeaIds?: string[];
+  notificationPrefs?: Record<string, boolean>;
+  privacyPrefs?: Record<string, string>;
 };
 
 type AuthContextType = {
@@ -44,23 +53,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubSnapshot: (() => void) | null = null;
+
+    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
+      
+      if (unsubSnapshot) {
+        unsubSnapshot();
+        unsubSnapshot = null;
+      }
+
       if (firebaseUser) {
-        try {
-          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-          if (snap.exists()) {
-            setProfile({ uid: firebaseUser.uid, ...snap.data() } as UserProfile);
+        unsubSnapshot = onSnapshot(
+          doc(db, "users", firebaseUser.uid),
+          (docSnap) => {
+            if (docSnap.exists()) {
+              setProfile({ uid: firebaseUser.uid, ...docSnap.data() } as UserProfile);
+            }
+            setLoading(false);
+          },
+          (e) => {
+            console.error("[AuthContext] Failed to load profile:", e);
+            setLoading(false);
           }
-        } catch (e) {
-          console.error("[AuthContext] Failed to load profile:", e);
-        }
+        );
       } else {
         setProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
-    return () => unsub();
+
+    return () => {
+      unsubAuth();
+      if (unsubSnapshot) unsubSnapshot();
+    };
   }, []);
 
   return (

@@ -57,3 +57,7 @@ export async function submitIdea(data: Omit<Idea, "id" | "upvotes" | "comments" 
 export async function upvoteIdea(ideaId: string) {
   await updateDoc(doc(db, COL, ideaId), { upvotes: increment(1) });
 }
+
+export async function downvoteIdea(ideaId: string) {
+  await updateDoc(doc(db, COL, ideaId), { upvotes: increment(-1) });
+}

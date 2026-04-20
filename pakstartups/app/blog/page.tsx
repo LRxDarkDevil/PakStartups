@@ -29,6 +29,8 @@ export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [featured, setFeatured] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(6);
 
   useEffect(() => {
     (async () => {
@@ -41,6 +43,7 @@ export default function BlogPage() {
         setFeatured(feat);
         // Exclude the featured post from the grid
         setPosts(data.filter((p) => !feat || p.id !== feat.id));
+        setVisibleCount(6);
       } catch (e) {
         console.error(e);
       } finally {
@@ -48,6 +51,12 @@ export default function BlogPage() {
       }
     })();
   }, [activeTab]);
+
+  const filteredPosts = posts.filter((post) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [post.title, post.excerpt, post.category, post.authorName].join(" ").toLowerCase().includes(q);
+  });
 
   return (
     <>
@@ -68,7 +77,7 @@ export default function BlogPage() {
       {/* Tabs */}
       <div className="bg-white border-b border-[#e0e0e0]">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="flex gap-6 overflow-x-auto no-scrollbar">
+          <div className="flex gap-6 overflow-x-auto no-scrollbar items-center">
             {TABS.map((tab) => (
               <button
                 key={tab}
@@ -81,6 +90,10 @@ export default function BlogPage() {
             <Link href="/blog/submit" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors ml-auto">
               Submit Your Story
             </Link>
+            <div className="relative ml-4 min-w-[240px]">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707973] text-sm">search</span>
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} type="text" placeholder="Search stories..." className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#e0e0e0] outline-none focus:ring-2 focus:ring-[#0f5238]/30" />
+            </div>
           </div>
         </div>
       </div>
@@ -121,7 +134,7 @@ export default function BlogPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
-        ) : posts.length === 0 ? (
+        ) : filteredPosts.length === 0 ? (
           <div className="text-center py-20 bg-[#f5faf6] rounded-xl">
             <span className="material-symbols-outlined text-5xl text-[#bfc9c1] mb-3">article</span>
             <p className="font-bold text-[#002112]">No stories found</p>
@@ -129,7 +142,7 @@ export default function BlogPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {posts.map((p) => (
+            {filteredPosts.slice(0, visibleCount).map((p) => (
               <div key={p.id} className="group cursor-pointer">
                 <div className="rounded-xl aspect-[16/10] mb-4 overflow-hidden border border-[#e0e0e0]">
                   {p.cover ? (
@@ -159,9 +172,9 @@ export default function BlogPage() {
         )}
 
         {/* Load More */}
-        {!loading && posts.length > 0 && (
+        {!loading && filteredPosts.length > visibleCount && (
           <div className="text-center">
-            <button className="px-8 py-3 border-2 border-[#0f5238] text-[#0f5238] rounded-lg font-bold hover:bg-[#0f5238] hover:text-white transition-all">
+            <button onClick={() => setVisibleCount((count) => count + 6)} className="px-8 py-3 border-2 border-[#0f5238] text-[#0f5238] rounded-lg font-bold hover:bg-[#0f5238] hover:text-white transition-all">
               Load More Stories
             </button>
           </div>

@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getB2BDemands, getB2BSolutions, type B2BDemand, type B2BSolution } from "@/lib/services/b2b";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/context/AuthContext";
+import { arrayRemove, arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 
 const CATEGORIES = ["All Categories", "Tech & Dev", "Marketing", "Legal", "Finance", "Design", "Operations"];
 
@@ -30,14 +34,18 @@ function SkeletonCard() {
   );
 }
 
-type TabType = "Browse Demands" | "Browse Solutions" | "AI Matches ✨";
+type TabType = "Browse Demands" | "Browse Solutions";
 
 export default function B2BPage() {
+  const router = useRouter();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("Browse Demands");
   const [activeCategory, setActiveCategory] = useState("All Categories");
+  const [searchQuery, setSearchQuery] = useState("");
   const [demands, setDemands] = useState<B2BDemand[]>([]);
   const [solutions, setSolutions] = useState<B2BSolution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setLoading(true);
@@ -50,6 +58,39 @@ export default function B2BPage() {
       setLoading(false);
     }
   }, [activeTab, activeCategory]);
+
+  const savedIds = profile?.savedB2BIds ?? [];
+
+  const toggleSave = async (kind: "demand" | "solution", id: string) => {
+    if (!user) {
+      router.push("/auth/signup");
+      return;
+    }
+    const key = `${kind}:${id}`;
+    setSaving((prev) => new Set([...prev, key]));
+    const ref = doc(db, "users", user.uid);
+    const alreadySaved = savedIds.includes(key);
+    await updateDoc(ref, {
+      savedB2BIds: alreadySaved ? arrayRemove(key) : arrayUnion(key),
+    });
+    setSaving((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  };
+
+  const handleShare = async (title: string, kind: "demand" | "solution", id: string) => {
+    const url = `${window.location.origin}/b2b/view?kind=${kind}&id=${id}`;
+    if (navigator.share) {
+      await navigator.share({ title, url });
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+  };
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filterItem = (text: string) => !normalizedSearch || text.toLowerCase().includes(normalizedSearch);
 
   return (
     <>
@@ -78,25 +119,20 @@ export default function B2BPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-8 py-12">
-        {/* AI Match Banner */}
-        <div className="mb-12 bg-[#0f5238] rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl shadow-[#0f5238]/20">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#2d6a4f] flex items-center justify-center text-[#a8e7c5]">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-            </div>
-            <div>
-              <h3 className="text-white font-bold text-lg">AI-powered matching available</h3>
-              <p className="text-[#a8e7c5] text-sm">Our AI matches your profile with relevant demands and solutions.</p>
-            </div>
+        <div className="mb-12 bg-white rounded-xl p-6 border border-[#e0e0e0] flex flex-col md:flex-row items-center gap-4 shadow-sm">
+          <div className="relative flex-1 w-full">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707973]">search</span>
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search demands, services, tags..." className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#e0e0e0] outline-none focus:ring-2 focus:ring-[#0f5238]/30" />
           </div>
-          <button onClick={() => setActiveTab("AI Matches ✨")} className="px-6 py-2 border-2 border-[#a8e7c5] text-[#a8e7c5] rounded-lg font-bold hover:bg-[#a8e7c5] hover:text-[#0f5238] transition-all whitespace-nowrap">
-            See AI Matches →
-          </button>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button onClick={() => router.push(user ? "/b2b/post-demand" : "/auth/signup")} className="px-5 py-3 rounded-lg bg-[#0f5238] text-white font-bold hover:bg-[#2d6a4f] transition-all w-full md:w-auto">Post Demand</button>
+            <button onClick={() => router.push(user ? "/b2b/list-solution" : "/auth/signup")} className="px-5 py-3 rounded-lg bg-[#caf2d7] text-[#0f5238] font-bold hover:bg-[#c4ecd2] transition-all w-full md:w-auto">List Solution</button>
+          </div>
         </div>
 
         {/* Tabs */}
         <div className="flex items-center gap-8 mb-8 border-b border-[#bfc9c1]/20 overflow-x-auto pb-1 no-scrollbar">
-          {(["Browse Demands", "Browse Solutions", "AI Matches ✨"] as TabType[]).map((tab) => (
+          {(["Browse Demands", "Browse Solutions"] as TabType[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -110,19 +146,17 @@ export default function B2BPage() {
         </div>
 
         {/* Category Filter */}
-        {activeTab !== "AI Matches ✨" && (
-          <div className="flex flex-wrap gap-3 mb-12">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-6 py-2.5 rounded-full font-bold text-sm ${activeCategory === cat ? "bg-[#0f5238] text-white shadow-md" : "bg-white text-[#404943] hover:bg-[#caf2d7] transition-all"}`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-3 mb-12">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-6 py-2.5 rounded-full font-bold text-sm ${activeCategory === cat ? "bg-[#0f5238] text-white shadow-md" : "bg-white text-[#404943] hover:bg-[#caf2d7] transition-all"}`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
         {/* Demand Cards */}
         {activeTab === "Browse Demands" && (
@@ -130,7 +164,7 @@ export default function B2BPage() {
             <div className="grid grid-cols-1 gap-6">
               {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
             </div>
-          ) : demands.length === 0 ? (
+          ) : demands.filter((d) => filterItem([d.title, d.desc, d.category, d.tags.join(" "), d.ownerName].join(" "))).length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-[#e0e0e0]">
               <span className="material-symbols-outlined text-5xl text-[#bfc9c1] mb-3">inbox</span>
               <h3 className="text-xl font-bold text-[#002112]">No demands yet</h3>
@@ -142,8 +176,8 @@ export default function B2BPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 gap-6">
-                {demands.map((d) => (
-                  <div key={d.id} className="bg-white rounded-xl p-8 shadow-[0_4px_20px_rgba(15,82,56,0.04)] hover:shadow-xl transition-all border border-transparent hover:border-[#0f5238]/5 group">
+                {demands.filter((d) => filterItem([d.title, d.desc, d.category, d.tags.join(" "), d.ownerName].join(" "))).map((d) => (
+                  <div key={d.id} role="button" tabIndex={0} onClick={() => router.push(`/b2b/view?kind=demand&id=${d.id ?? ""}`)} className="bg-white rounded-xl p-8 shadow-[0_4px_20px_rgba(15,82,56,0.04)] hover:shadow-xl transition-all border border-transparent hover:border-[#0f5238]/5 group block cursor-pointer">
                     <div className="flex flex-col md:flex-row gap-8">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-4">
@@ -179,7 +213,15 @@ export default function B2BPage() {
                             <span className="text-sm font-medium">{d.ownerName}</span>
                           </div>
                         </div>
-                        <button className="mt-6 w-full py-3 bg-[#0f5238] text-white rounded-lg font-bold active:scale-95 transition-all hover:bg-[#2d6a4f]">
+                        <div className="mt-6 flex gap-2">
+                          <button onClick={(e) => { e.stopPropagation(); if (d.id) void toggleSave("demand", d.id); }} className="flex-1 py-3 bg-[#d5fde2] text-[#0f5238] rounded-lg font-bold active:scale-95 transition-all hover:bg-[#c4ecd2]">
+                            {saving.has(`demand:${d.id}`) || savedIds.includes(`demand:${d.id}`) ? "Saved" : "Save"}
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); if (d.id) void handleShare(d.title, "demand", d.id); }} className="px-4 py-3 bg-[#f5faf6] text-[#0f5238] rounded-lg font-bold active:scale-95 transition-all hover:bg-[#e8ffee]">
+                            Share
+                          </button>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); router.push(`/b2b/view?kind=demand&id=${d.id ?? ""}`); }} className="mt-3 w-full py-3 bg-[#0f5238] text-white rounded-lg font-bold active:scale-95 transition-all hover:bg-[#2d6a4f] text-center block">
                           View &amp; Respond
                         </button>
                       </div>
@@ -199,7 +241,7 @@ export default function B2BPage() {
         {activeTab === "Browse Solutions" && (
           loading ? (
             <div className="grid grid-cols-1 gap-6">{[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}</div>
-          ) : solutions.length === 0 ? (
+          ) : solutions.filter((s) => filterItem([s.title, s.desc, s.category, s.tags.join(" "), s.ownerName].join(" "))).length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-[#bfc9c1]/20">
               <span className="material-symbols-outlined text-4xl text-[#bfc9c1] mb-2">storefront</span>
               <h3 className="text-xl font-bold text-[#002112]">Service Directory</h3>
@@ -210,8 +252,8 @@ export default function B2BPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {solutions.map((s) => (
-                <div key={s.id} className="bg-white rounded-xl p-6 border border-[#e0e0e0] hover:shadow-lg transition-all group">
+              {solutions.filter((s) => filterItem([s.title, s.desc, s.category, s.tags.join(" "), s.ownerName].join(" "))).map((s) => (
+                <div key={s.id} role="button" tabIndex={0} onClick={() => router.push(`/b2b/view?kind=solution&id=${s.id ?? ""}`)} className="bg-white rounded-xl p-6 border border-[#e0e0e0] hover:shadow-lg transition-all group block cursor-pointer">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-lg bg-[#cff7dd] flex items-center justify-center text-[#0f5238]">
                       <span className="material-symbols-outlined">{s.icon}</span>
@@ -227,23 +269,18 @@ export default function B2BPage() {
                   </div>
                   <div className="flex items-center justify-between pt-4 border-t border-[#e0e0e0]">
                     <span className="font-bold text-[#0f5238]">{s.priceRange}</span>
-                    <button className="px-4 py-2 bg-[#0f5238] text-white rounded-lg text-sm font-bold hover:bg-[#2d6a4f] transition-all">Contact</button>
+                    <div className="flex gap-2">
+                      <button onClick={(e) => { e.stopPropagation(); if (s.id) void toggleSave("solution", s.id); }} className="px-4 py-2 bg-[#d5fde2] text-[#0f5238] rounded-lg text-sm font-bold hover:bg-[#c4ecd2] transition-all">
+                        {saving.has(`solution:${s.id}`) || savedIds.includes(`solution:${s.id}`) ? "Saved" : "Save"}
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); if (s.id) void handleShare(s.title, "solution", s.id); }} className="px-4 py-2 bg-[#f5faf6] text-[#0f5238] rounded-lg text-sm font-bold hover:bg-[#e8ffee] transition-all">Share</button>
+                      <button onClick={(e) => { e.stopPropagation(); router.push(`/b2b/view?kind=solution&id=${s.id ?? ""}`); }} className="px-4 py-2 bg-[#0f5238] text-white rounded-lg text-sm font-bold">Contact</button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )
-        )}
-
-        {activeTab === "AI Matches ✨" && (
-          <div className="text-center py-20 bg-white rounded-xl border border-[#bfc9c1]/20">
-            <span className="material-symbols-outlined text-4xl text-[#0f5238] mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-            <h3 className="text-xl font-bold text-[#002112]">Your AI Matches</h3>
-            <p className="text-[#404943] mt-2 mb-6">Our system uses your profile skills and recent activity to instantly pair you with relevant demands or solutions.</p>
-            <button className="px-8 py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-all inline-block active:scale-95">
-              Generate New Matches
-            </button>
-          </div>
         )}
       </main>
     </>

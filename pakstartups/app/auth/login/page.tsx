@@ -149,7 +149,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <a href="#" className="text-xs text-[#0f5238] font-bold hover:underline">Forgot password?</a>
+              <Link href="/support" className="text-xs text-[#0f5238] font-bold hover:underline">Forgot password?</Link>
             </div>
             <button
               type="submit"

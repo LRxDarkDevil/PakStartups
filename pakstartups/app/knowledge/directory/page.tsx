@@ -1,0 +1,1 @@
+export default function KnowledgeDirectoryPage() { return <main className="max-w-4xl mx-auto px-8 py-20"><h1 className="text-4xl font-black text-[#002112]">Resource Directory</h1><p className="mt-4 text-[#404943]">Grants, accelerators, legal helpers, and ecosystem listings.</p></main>; }

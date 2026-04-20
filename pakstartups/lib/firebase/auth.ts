@@ -73,6 +73,22 @@ async function createUserProfile(user: User, extra: { fullName: string }) {
       bio: "",
       skills: [],
       socialLinks: {},
+      savedMatchProfileIds: [],
+      savedStartupIds: [],
+      savedOrganizationIds: [],
+      savedB2BIds: [],
+      savedEventIds: [],
+      savedIdeaIds: [],
+      notificationPrefs: {
+        email: true,
+        matches: true,
+        b2b: true,
+        events: true,
+      },
+      privacyPrefs: {
+        profileVisibility: "Public",
+        emailVisibility: "Hidden",
+      },
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

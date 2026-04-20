@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getIdeas, getMyIdeas, upvoteIdea, type Idea } from "@/lib/services/ideas";
+import { getIdeas, getMyIdeas, upvoteIdea, downvoteIdea, type Idea } from "@/lib/services/ideas";
 import { auth } from "@/lib/firebase/config";
 import { onAuthStateChanged, type User } from "firebase/auth";
 
@@ -47,6 +47,7 @@ export default function IdeasPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [upvoted, setUpvoted] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
@@ -83,7 +84,17 @@ export default function IdeasPage() {
     await upvoteIdea(idea.id);
   };
 
-  const displayIdeas = activeTab === "My Ideas" ? myIdeas : ideas;
+  const handleDownvote = async (idea: Idea) => {
+    if (!idea.id) return;
+    setIdeas((prev) => prev.map((i) => i.id === idea.id ? { ...i, upvotes: Math.max(0, i.upvotes - 1) } : i));
+    await downvoteIdea(idea.id);
+  };
+
+  const displayIdeas = (activeTab === "My Ideas" ? myIdeas : ideas).filter((idea) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [idea.title, idea.desc, idea.tags.join(" "), idea.stage].join(" ").toLowerCase().includes(q);
+  });
 
   return (
     <>
@@ -100,10 +111,21 @@ export default function IdeasPage() {
         </div>
       </section>
 
+      <section className="bg-[#0f5238] px-8 py-8">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-white">
+          <div>
+            <p className="text-[#95d4b3] text-xs font-bold uppercase tracking-widest mb-2">Featured validation tools</p>
+            <h2 className="text-3xl font-black">Validate faster before you build.</h2>
+            <p className="text-[#a8e7c5] mt-2 max-w-2xl">Use the feasibility checker, survey builder, and MVP resources at the top of the page instead of hunting for them below.</p>
+          </div>
+          <Link href="/ideas/feasibility" className="px-5 py-3 rounded-lg bg-white text-[#0f5238] font-bold hover:bg-[#d5fde2] transition-all whitespace-nowrap">Open Feasibility Tool</Link>
+        </div>
+      </section>
+
       {/* Tabs */}
       <div className="bg-white border-b border-[#e0e0e0]">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="flex gap-8 overflow-x-auto no-scrollbar">
+          <div className="flex flex-wrap items-center gap-8 overflow-x-auto no-scrollbar">
             {["Browse Ideas", "My Ideas"].map((tab) => (
               <button
                 key={tab}
@@ -117,6 +139,10 @@ export default function IdeasPage() {
             <Link href="/ideas/feasibility" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors">Feasibility Tool</Link>
             <Link href="/ideas/survey" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors">Survey Builder</Link>
             <Link href="/ideas/resources" className="py-4 text-sm whitespace-nowrap text-[#404943] hover:text-[#0f5238] transition-colors">MVP Resources</Link>
+            <div className="relative ml-auto">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707973] text-sm">search</span>
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} type="text" placeholder="Search ideas..." className="pl-10 pr-4 py-2.5 rounded-lg border border-[#e0e0e0] outline-none focus:ring-2 focus:ring-[#0f5238]/30" />
+            </div>
           </div>
         </div>
       </div>
@@ -209,13 +235,16 @@ export default function IdeasPage() {
                           >
                             <span className="material-symbols-outlined text-sm">arrow_upward</span>{idea.upvotes}
                           </button>
+                          <button onClick={() => void handleDownvote(idea)} className="flex items-center gap-1 hover:text-[#0f5238] transition-colors">
+                            <span className="material-symbols-outlined text-sm">arrow_downward</span> Downvote
+                          </button>
                           <span className="flex items-center gap-1">
                             <span className="material-symbols-outlined text-sm">chat_bubble</span>{idea.comments}
                           </span>
                         </div>
-                        <a href="#" className="text-[#0f5238] font-bold text-sm flex items-center gap-1">
+                        <Link href={`/ideas/view?id=${idea.id ?? ""}`} className="text-[#0f5238] font-bold text-sm flex items-center gap-1">
                           View Details <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   ))}

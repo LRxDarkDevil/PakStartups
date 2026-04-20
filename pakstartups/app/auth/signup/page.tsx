@@ -169,7 +169,7 @@ export default function SignUpPage() {
                 className="w-5 h-5 text-[#0f5238] bg-[#F4FAF6] border-[#bfc9c1] rounded focus:ring-[#0f5238] focus:ring-offset-0"
               />
               <label className="ml-3 text-sm text-[#404943] font-medium" htmlFor="terms">
-                I agree to <a href="#" className="text-[#0f5238] font-bold hover:underline">Terms &amp; Conditions</a>
+                I agree to <Link href="/terms" className="text-[#0f5238] font-bold hover:underline">Terms &amp; Conditions</Link>
               </label>
             </div>
             <button
