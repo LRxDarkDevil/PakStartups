@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── Helper Functions ─────────────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    function underMB(mb) {
+      return request.resource.size <= mb * 1024 * 1024;
+    }
+
+    // ─── Profile Photos ───────────────────────────────────────────────────────
+    // Path: avatars/{uid}/photo.{ext}
+    match /avatars/{uid}/{filename} {
+      allow read: if true;
+      allow write: if isOwner(uid) && isImage() && underMB(2);
+      allow delete: if isOwner(uid);
+    }
+
+    // ─── Startup Logos ────────────────────────────────────────────────────────
+    // Path: startups/{uid}/{startupId}/{filename}
+    match /startups/{uid}/{startupId}/{filename} {
+      allow read: if true;
+      allow write: if isOwner(uid) && isImage() && underMB(2);
+      allow delete: if isOwner(uid);
+    }
+
+    // ─── Blog Post Covers ─────────────────────────────────────────────────────
+    // Path: blog/{uid}/{postId}/{filename}
+    match /blog/{uid}/{postId}/{filename} {
+      allow read: if true;
+      allow write: if isOwner(uid) && isImage() && underMB(5);
+      allow delete: if isOwner(uid);
+    }
+
+    // ─── Event Covers ─────────────────────────────────────────────────────────
+    // Path: events/{uid}/{eventId}/{filename}
+    match /events/{uid}/{eventId}/{filename} {
+      allow read: if true;
+      allow write: if isOwner(uid) && isImage() && underMB(5);
+      allow delete: if isOwner(uid);
+    }
+
+    // ─── Knowledge Resources (admin uploads only) ─────────────────────────────
+    // Path: knowledge/{filename}
+    match /knowledge/{filename} {
+      allow read: if true;
+      allow write: if false; // Upload via Cloud Functions / Admin SDK only
+    }
+
+    // Deny everything else by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
