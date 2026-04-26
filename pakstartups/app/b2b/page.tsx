@@ -46,6 +46,7 @@ export default function B2BPage() {
   const [solutions, setSolutions] = useState<B2BSolution[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Set<string>>(new Set());
+  const [visibleDemandsCount, setVisibleDemandsCount] = useState(5);
 
   useEffect(() => {
     setLoading(true);
@@ -176,7 +177,7 @@ export default function B2BPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 gap-6">
-                {demands.filter((d) => filterItem([d.title, d.desc, d.category, d.tags.join(" "), d.ownerName].join(" "))).map((d) => (
+                {demands.filter((d) => filterItem([d.title, d.desc, d.category, d.tags.join(" "), d.ownerName].join(" "))).slice(0, visibleDemandsCount).map((d) => (
                   <div key={d.id} role="button" tabIndex={0} onClick={() => router.push(`/b2b/view?kind=demand&id=${d.id ?? ""}`)} className="bg-white rounded-xl p-8 shadow-[0_4px_20px_rgba(15,82,56,0.04)] hover:shadow-xl transition-all border border-transparent hover:border-[#0f5238]/5 group block cursor-pointer">
                     <div className="flex flex-col md:flex-row gap-8">
                       <div className="flex-1">
@@ -229,11 +230,16 @@ export default function B2BPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-12 text-center">
-                <button className="px-8 py-3 text-[#0f5238] font-bold border-2 border-[#0f5238] rounded-lg hover:bg-[#0f5238] hover:text-white transition-all">
-                  Load More Demands
-                </button>
-              </div>
+              {demands.filter((d) => filterItem([d.title, d.desc, d.category, d.tags.join(" "), d.ownerName].join(" "))).length > visibleDemandsCount && (
+                <div className="mt-12 text-center">
+                  <button
+                    onClick={() => setVisibleDemandsCount((c) => c + 5)}
+                    className="px-8 py-3 text-[#0f5238] font-bold border-2 border-[#0f5238] rounded-lg hover:bg-[#0f5238] hover:text-white transition-all"
+                  >
+                    Load More Demands
+                  </button>
+                </div>
+              )}
             </>
           )
         )}

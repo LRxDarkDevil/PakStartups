@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"config|env|\\\\.json$\")",
+      "Bash(find /e/Codes/PakStartups/pakstartups -type f \\\\\\( -name \"*.env\" -o -name \".env*\" \\\\\\) ! -path \"*/node_modules/*\" ! -path \"*/.git/*\" ! -path \"*/.next/*\" -exec echo \"File: {}\" \\\\; -exec cat \"{}\" \\\\;)",
+      "Bash(find /e/Codes/PakStartups/pakstartups/lib -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"apiKey\\\\|authDomain\\\\|projectId\" {} \\\\;)",
+      "Bash(find /e/Codes/PakStartups/pakstartups/app -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"AIza\\\\|serviceAccount\\\\|private_key\\\\|client_secret\" {} \\\\;)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"require\\('next-sanity'\\); console.log\\('next-sanity OK'\\)\")",
+      "Bash(node *)",
+      "Bash(npm ls *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(firebase --version)",
+      "Bash(npx firebase-tools *)",
+      "Bash(firebase deploy *)"
+    ]
+  }
+}

@@ -1,22 +1,19 @@
 // app/api/match/route.ts
-// GET /api/match — browse match profiles
+// GET /api/match — browse match profiles from Firestore
 
 import { NextRequest, NextResponse } from "next/server";
-
-const STUB_PROFILES = [
-  { id: "1", fullName: "Ahmed Khan", city: "Lahore", role: "Founder", skills: ["Product", "AgriTech"] },
-  { id: "2", fullName: "Sara Ahmed", city: "Karachi", role: "Tech Lead", skills: ["React Native", "FinTech"] },
-  { id: "3", fullName: "Zain Malik", city: "Islamabad", role: "Student", skills: ["Python", "Logistics"] },
-];
+import { getMatchProfiles } from "@/lib/services/match";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const role = searchParams.get("role");
-  const city = searchParams.get("city");
+  const role = searchParams.get("role") ?? undefined;
+  const city = searchParams.get("city") ?? undefined;
 
-  let results = STUB_PROFILES;
-  if (role) results = results.filter((p) => p.role === role);
-  if (city) results = results.filter((p) => p.city === city);
-
-  return NextResponse.json({ data: results, total: results.length });
+  try {
+    const results = await getMatchProfiles(role, city);
+    return NextResponse.json({ data: results, total: results.length });
+  } catch (err) {
+    console.error("Match API error:", err);
+    return NextResponse.json({ error: "Failed to fetch profiles" }, { status: 500 });
+  }
 }

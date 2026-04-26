@@ -1,14 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { getAllKnowledgeResources } from "@/lib/services/knowledge";
 
 type Section = { icon: string; title: string; desc: string; cta: string; href: string };
 type Recent = { tag: string; label: string; title: string; read: string };
 
-export default function KnowledgeHubClient({ sections, recent }: { sections: Section[]; recent: Recent[] }) {
+function toRecentTag(resourceType: string) {
+  if (resourceType === "guide") return "GUIDES";
+  if (resourceType === "tool") return "TOOLKIT";
+  if (resourceType === "report") return "INTELLIGENCE";
+  return "RESOURCES";
+}
+
+function toRecentHref(resourceType: string) {
+  if (resourceType === "guide") return "/knowledge/guides";
+  if (resourceType === "tool") return "/knowledge/toolkit";
+  if (resourceType === "report") return "/knowledge/reports";
+  return "/knowledge/directory";
+}
+
+export default function KnowledgeHubClient({ sections }: { sections: Section[] }) {
   const [query, setQuery] = useState("");
+  const [recent, setRecent] = useState<Array<Recent & { href: string }>>([]);
   const normalized = query.trim().toLowerCase();
+
+  useEffect(() => {
+    getAllKnowledgeResources()
+      .then((resources) => {
+        const recentItems = resources.slice(0, 4).map((item) => ({
+          tag: toRecentTag(item.resourceType),
+          label: "NEW",
+          title: item.title,
+          read: item.readTime ?? (item.format ? String(item.format) : "Resource"),
+          href: toRecentHref(item.resourceType),
+        }));
+        setRecent(recentItems);
+      })
+      .catch(console.error);
+  }, []);
 
   const filteredSections = sections.filter((section) => !normalized || [section.title, section.desc, section.cta].join(" ").toLowerCase().includes(normalized));
   const filteredRecent = recent.filter((item) => !normalized || [item.title, item.tag, item.label].join(" ").toLowerCase().includes(normalized));
@@ -56,7 +87,7 @@ export default function KnowledgeHubClient({ sections, recent }: { sections: Sec
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredRecent.map((item) => (
-              <Link key={item.title} href="/knowledge/reports" className="bg-white rounded-xl p-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.1)] transition-all cursor-pointer block">
+              <Link key={item.title} href={item.href} className="bg-white rounded-xl p-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.1)] transition-all cursor-pointer block">
                 <div className="flex gap-2 mb-4">
                   <span className="px-2 py-0.5 bg-[#0f5238] text-white text-[10px] font-bold rounded uppercase">{item.label}</span>
                   <span className="px-2 py-0.5 bg-[#d5fde2] text-[#0f5238] text-[10px] font-bold rounded uppercase">{item.tag}</span>

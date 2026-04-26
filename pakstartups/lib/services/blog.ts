@@ -59,6 +59,13 @@ export async function getFeaturedPost(): Promise<BlogPost | null> {
   return { id: snaps.docs[0].id, ...snaps.docs[0].data() } as BlogPost;
 }
 
+export async function getPostById(id: string): Promise<BlogPost | null> {
+  const { getDoc, doc } = await import("firebase/firestore");
+  const snap = await getDoc(doc(db, COL, id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as BlogPost;
+}
+
 export async function submitPost(data: Omit<BlogPost, "id" | "status" | "isFeatured" | "createdAt">) {
   return addDoc(collection(db, COL), {
     ...data,

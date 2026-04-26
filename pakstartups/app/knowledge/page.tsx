@@ -13,13 +13,6 @@ const sections = [
   { icon: "account_balance", title: "Resource Directory", desc: "Access a curated list of grants, updated regulations & local investor directories.", cta: "Browse Resources" },
 ];
 
-const recent = [
-  { tag: "GUIDES", label: "NEW", title: "SECP Compliance Checklist 2024", read: "12 min read" },
-  { tag: "INTELLIGENCE", label: "NEW", title: "FinTech Market Share Analysis Q3", read: "18 min read" },
-  { tag: "TOOLKIT", label: "NEW", title: "Equity Dilution Simulator for Seed Stage", read: "Tool" },
-  { tag: "RESOURCES", label: "NEW", title: "2024 Angel Investor Directory: AgriTec...", read: "5 min read" },
-];
-
 export default function KnowledgePage() {
-  return <KnowledgeHubClient sections={sections.map((s) => ({ ...s, href: `/knowledge/${s.title === "Learning Guides" ? "guides" : s.title === "Operational Toolkit" ? "toolkit" : s.title === "Market Intelligence" ? "reports" : "directory" }` }))} recent={recent} />;
+  return <KnowledgeHubClient sections={sections.map((s) => ({ ...s, href: `/knowledge/${s.title === "Learning Guides" ? "guides" : s.title === "Operational Toolkit" ? "toolkit" : s.title === "Market Intelligence" ? "reports" : "directory" }` }))} />;
 }

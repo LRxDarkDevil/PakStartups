@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# seed scripts — contain hardcoded data for one-time Firestore population
+/scripts/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -3,7 +3,10 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/context/AuthContext";
+import { PHProvider } from "@/lib/context/PostHogContext";
+import PostHogPageView from "@/components/analytics/PostHogPageView";
 import CookieConsent from "@/components/layout/CookieConsent";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pakstartups.io"),
@@ -80,10 +83,15 @@ export default function RootLayout({
       </head>
       <body className="bg-[#e8ffee] text-[#002112] selection:bg-[#b1f0ce] selection:text-[#002114] antialiased">
         <AuthProvider>
-          <Header />
-          <main>{children}</main>
-          <Footer />
-          <CookieConsent />
+          <PHProvider>
+            <Suspense fallback={null}>
+              <PostHogPageView />
+            </Suspense>
+            <Header />
+            <main>{children}</main>
+            <Footer />
+            <CookieConsent />
+          </PHProvider>
         </AuthProvider>
       </body>
     </html>

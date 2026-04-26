@@ -31,17 +31,17 @@ const PROFILES_COL = "matchProfiles";
 const CONNECTIONS_COL = "connections";
 
 export async function getMatchProfiles(role?: string, city?: string): Promise<MatchProfile[]> {
-  let constraints: Parameters<typeof query>[1][] = [
+  const q = query(
+    collection(db, PROFILES_COL),
     where("openToConnect", "==", true),
     orderBy("createdAt", "desc"),
-    limit(30),
-  ];
-  if (role) constraints = [where("role", "==", role), ...constraints];
-  if (city && city !== "All Cities") constraints = [where("city", "==", city), ...constraints];
-
-  const q = query(collection(db, PROFILES_COL), ...constraints);
+    limit(100),
+  );
   const snaps = await getDocs(q);
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as MatchProfile);
+  let results = snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as MatchProfile);
+  if (role) results = results.filter((p) => p.role === role);
+  if (city && city !== "All Cities") results = results.filter((p) => p.city === city);
+  return results.slice(0, 30);
 }
 
 export async function getMatchProfilesByIds(ids: string[]): Promise<MatchProfile[]> {
