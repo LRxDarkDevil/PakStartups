@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "pakstartups-749e2"
-  }
+    "default": "pakstartups-749e2",
+    "dev": "pakstartups-test"
+  },
+  "targets": {},
+  "etags": {}
 }
