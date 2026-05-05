@@ -7,6 +7,7 @@
 
     { "collectionGroup": "ideas", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
     { "collectionGroup": "ideas", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "upvotes", "order": "DESCENDING" }] },
+    { "collectionGroup": "ideas", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "comments", "order": "DESCENDING" }] },
     { "collectionGroup": "ideas", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "ownerId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
 
     { "collectionGroup": "blogPosts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
@@ -15,7 +16,9 @@
     { "collectionGroup": "blogPosts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "isFeatured", "order": "DESCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
 
     { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "dateTs", "order": "ASCENDING" }] },
+    { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "dateTs", "order": "DESCENDING" }] },
     { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "type", "order": "ASCENDING" }, { "fieldPath": "dateTs", "order": "ASCENDING" }] },
     { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "isFeatured", "order": "DESCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "dateTs", "order": "ASCENDING" }] },
     { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "organizerId", "order": "ASCENDING" }, { "fieldPath": "dateTs", "order": "ASCENDING" }] },
 
@@ -33,6 +36,8 @@
     { "collectionGroup": "connections", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "fromUid", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }] },
     { "collectionGroup": "connections", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "toUid", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }] },
     { "collectionGroup": "connections", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "fromUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "connections", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "fromUid", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "connections", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "toUid", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
 
     { "collectionGroup": "notifications", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "toUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
     { "collectionGroup": "notifications", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "toUid", "order": "ASCENDING" }, { "fieldPath": "read", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
