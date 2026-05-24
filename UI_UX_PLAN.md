@@ -47,6 +47,7 @@
 ### Fix Recommendations
 * **Introduce Accent Colors:** Bring in a secondary accent color (e.g., a subtle orange, gold, or blue) for primary Call-to-Action buttons to make them pop against the green backgrounds.
 * **Whitespace & Breathing Room:** Increase padding in listing grids (e.g., in the B2B marketplace) to make the cards feel less cramped.
+* **Subtle Animations & Micro-interactions:** Add basic hover state transitions (e.g., slight scaling `hover:scale-105` or subtle box-shadow increases) on startup cards to make the interface feel more tactile and alive. Keep animations quick (`duration-300`) to avoid slowing down the user experience.
 
 ---
 
