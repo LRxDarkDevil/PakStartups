@@ -29,7 +29,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: path === "" ? 1 : 0.7,
   }));
 
-  const blogPosts = await getSanityPostSlugs();
+  let blogPosts: any[] = [];
+  try {
+    blogPosts = await getSanityPostSlugs();
+  } catch (err) {
+    console.error("Failed to fetch Sanity post slugs. Returning empty array.", err);
+  }
+
   const blogRoutes = blogPosts.map((post) => ({
     url: `${site}/blog/${post.slug}`,
     lastModified: new Date(post.updatedAt),

@@ -1,22 +1,28 @@
-// app/api/events/route.ts
-// GET /api/events — list events
-
 import { NextRequest, NextResponse } from "next/server";
+import { getUpcomingEvents, getPastEvents, getWeeklyMeetups } from "@/lib/services/events";
 
-const STUB_EVENTS = [
-  { id: "1", title: "Friday Founder Pitch Night #24", date: "2024-04-25", type: "Pitching", location: "Online", attending: 287 },
-  { id: "2", title: "SaaS Growth Masterclass", date: "2024-05-02", type: "Workshop", location: "LUMS, Lahore", attending: 142 },
-  { id: "3", title: "Founder Coffee: Karachi", date: "2024-05-05", type: "Meetup", location: "Coffee Wagera, Karachi", attending: 45 },
-];
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const type = searchParams.get("type");
 
-export async function GET(_request: NextRequest) {
-  return NextResponse.json({ data: STUB_EVENTS, total: STUB_EVENTS.length });
+  try {
+    let results;
+    if (type === "past") {
+      results = await getPastEvents();
+    } else if (type === "meetups") {
+      results = await getWeeklyMeetups();
+    } else {
+      results = await getUpcomingEvents();
+    }
+    return NextResponse.json({ data: results, total: results.length });
+  } catch (err) {
+    console.error("Events API error:", err);
+    return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Safety default for open-source deployments: keep writes disabled until
-    // server-side auth/token verification is fully configured.
     if (process.env.ENABLE_PUBLIC_WRITES !== "true") {
       return NextResponse.json(
         { error: "Event creation is temporarily disabled." },

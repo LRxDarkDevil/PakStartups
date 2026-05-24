@@ -72,10 +72,15 @@ export async function getSanityPostBySlug(slug: string): Promise<SanityBlogPost 
 }
 
 export async function getSanityPostSlugs(): Promise<Array<{ slug: string; updatedAt: string }>> {
-  return client.fetch<Array<{ slug: string; updatedAt: string }>>(
-    `*[_type == "blogPost" && status == "published" && defined(slug.current)] | order(publishedAt desc) {
-      "slug": slug.current,
-      "updatedAt": coalesce(_updatedAt, publishedAt)
-    }`
-  );
+  try {
+    return await client.fetch<Array<{ slug: string; updatedAt: string }>>(
+      `*[_type == "blogPost" && status == "published" && defined(slug.current)] | order(publishedAt desc) {
+        "slug": slug.current,
+        "updatedAt": coalesce(_updatedAt, publishedAt)
+      }`
+    );
+  } catch (error) {
+    console.warn("Failed to fetch Sanity post slugs. Returning empty array.", error);
+    return [];
+  }
 }

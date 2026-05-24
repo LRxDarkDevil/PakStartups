@@ -131,13 +131,20 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
         </div>
       </section>
 
+      {/* Tabs */}
+      <div className="flex gap-6 mb-8 border-b border-[#cff7dd]">
+        <button className="pb-3 text-[#0f5238] font-bold border-b-2 border-[#0f5238]">About</button>
+        <button className="pb-3 text-[#707973] font-bold hover:text-[#0f5238] transition-colors">Updates</button>
+        <button className="pb-3 text-[#707973] font-bold hover:text-[#0f5238] transition-colors">Product Roadmap</button>
+      </div>
+
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* Left */}
         <div className="lg:col-span-2 space-y-10">
           <div className="bg-white p-10 rounded-xl shadow-[0_8px_32px_rgba(15,82,56,0.04)]">
             <h3 className="text-2xl font-black text-[#002112] mb-4 tracking-tight">About</h3>
-            <p className="text-[#404943] leading-relaxed text-lg">{startup.desc}</p>
+            <p className="text-[#404943] leading-relaxed text-lg whitespace-pre-wrap">{startup.desc}</p>
 
             {startup.linkedin && (
               <div className="mt-8">

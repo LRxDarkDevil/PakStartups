@@ -1,18 +1,5 @@
-// app/api/startups/route.ts
-// GET /api/startups — list/filter startups (server-side, uses firebase-admin)
-// POST /api/startups — create a startup (auth required)
-
 import { NextRequest, NextResponse } from "next/server";
-
-// We stub with static data until Firebase Admin is configured
-// To connect to Firestore: npm install firebase-admin and add server credentials
-
-const STUB_STARTUPS = [
-  { id: "1", name: "FinFlow", city: "Lahore", category: "FinTech", stage: "Growth", slug: "finflow" },
-  { id: "2", name: "AgriSense", city: "Faisalabad", category: "AgriTech", stage: "MVP", slug: "agrisense" },
-  { id: "3", name: "SehatLink", city: "Karachi", category: "HealthTech", stage: "Scaling", slug: "sehatlink" },
-  { id: "4", name: "EduPeak", city: "Islamabad", category: "EdTech", stage: "Growth", slug: "edupeak" },
-];
+import { getStartups } from "@/lib/services/startups";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -20,18 +7,20 @@ export async function GET(request: NextRequest) {
   const city = searchParams.get("city");
   const stage = searchParams.get("stage");
 
-  let results = STUB_STARTUPS;
-  if (category) results = results.filter((s) => s.category === category);
-  if (city) results = results.filter((s) => s.city === city);
-  if (stage) results = results.filter((s) => s.stage === stage);
+  try {
+    let results = await getStartups(category || undefined);
+    if (city) results = results.filter((s) => s.city === city);
+    if (stage) results = results.filter((s) => s.stage === stage);
 
-  return NextResponse.json({ data: results, total: results.length });
+    return NextResponse.json({ data: results, total: results.length });
+  } catch (err) {
+    console.error("Startups API error:", err);
+    return NextResponse.json({ error: "Failed to fetch startups" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Safety default for open-source deployments: keep writes disabled until
-    // server-side auth/token verification is fully configured.
     if (process.env.ENABLE_PUBLIC_WRITES !== "true") {
       return NextResponse.json(
         { error: "Startup submission is temporarily disabled." },

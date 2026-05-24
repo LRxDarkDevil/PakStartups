@@ -70,6 +70,17 @@ export default function StartupsPage() {
     const q = searchQuery.trim().toLowerCase();
     if (q && ![s.name, s.desc, s.category, s.city, s.stage].join(" ").toLowerCase().includes(q)) return false;
     return true;
+  }).sort((a, b) => {
+    if (activeFilter === "Recently Added") {
+      const aTime = (a.createdAt as any)?.toMillis?.() ?? 0;
+      const bTime = (b.createdAt as any)?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    } else if (activeFilter === "Trending") {
+      return (b.views ?? 0) - (a.views ?? 0);
+    } else if (activeFilter === "By Industry") {
+      return a.category.localeCompare(b.category);
+    }
+    return 0; // "All Startups" (default order, usually descending by createdAt from the API)
   });
 
   return (
