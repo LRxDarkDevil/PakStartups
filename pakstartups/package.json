@@ -11,7 +11,8 @@
     "seed:knowledge": "tsx scripts/seed-knowledge.ts",
     "seed:ideas": "tsx scripts/seed-idea-resources.ts",
     "seed:faqs": "tsx scripts/seed-faqs.ts",
-    "seed:all": "npm run seed:ecosystem && npm run seed:knowledge && npm run seed:ideas && npm run seed:faqs"
+    "seed:all": "npm run seed:ecosystem && npm run seed:knowledge && npm run seed:ideas && npm run seed:faqs",
+    "db:clear": "node scripts/clear-db.mjs"
   },
   "dependencies": {
     "@portabletext/react": "^6.0.3",
