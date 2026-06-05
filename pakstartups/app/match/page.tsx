@@ -40,6 +40,32 @@ function SkeletonProfile() {
   );
 }
 
+const matchImages = [
+  "/images/image-011.jpg",
+  "/images/image-012.jpg",
+  "/images/image-013.jpg",
+  "/images/image-014.jpg",
+  "/images/image-015.jpg",
+  "/images/image-016.jpg",
+];
+
+const getMatchAvatar = (uid: string, id: string = "") => {
+  const match = uid?.match(/seed-(\d+)/);
+  if (match) {
+    const idx = parseInt(match[1], 10) - 1;
+    if (idx >= 0 && idx < matchImages.length) {
+      return matchImages[idx];
+    }
+  }
+  const hashStr = uid || id || "unknown";
+  let hash = 0;
+  for (let i = 0; i < hashStr.length; i++) {
+    hash = hashStr.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const idx = Math.abs(hash) % matchImages.length;
+  return matchImages[idx];
+};
+
 type TabType = "Browse Matches" | "My Requests" | "Received Requests" | "Saved Profiles";
 
 export default function MatchPage() {
@@ -251,8 +277,9 @@ export default function MatchPage() {
                   {filteredProfiles.map((p) => (
                     <div key={p.id} onClick={() => p.uid && openProfile(p.uid)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") p.uid && openProfile(p.uid); }} className="bg-white p-8 rounded-xl shadow-[0_8px_32px_rgba(15,82,56,0.04)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.08)] transition-all flex flex-col h-full cursor-pointer">
                       <div className="flex items-start justify-between mb-6">
-                        <div className="w-14 h-14 rounded-full bg-[#b4ef9d] overflow-hidden flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[#0f5238] text-2xl">person</span>
+                        <div className="w-14 h-14 rounded-full bg-[#b4ef9d] overflow-hidden flex items-center justify-center relative shrink-0 border border-[#bfc9c1]/20">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={getMatchAvatar(p.uid, p.id)} alt={p.name} className="w-full h-full object-cover" />
                         </div>
                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${roleColors[p.role] ?? "bg-gray-100 text-gray-600"}`}>{p.role}</span>
                       </div>

@@ -40,8 +40,15 @@ export default function SignUpPage() {
             />
             <span className="text-3xl font-black text-[#0f5238] tracking-tighter">PakStartups</span>
           </div>
-          <div className="w-full max-w-md mb-12 bg-[#9cd686]/40 rounded-3xl aspect-[4/3] flex items-center justify-center">
-            <span className="material-symbols-outlined text-[100px] text-[#0f5238] opacity-40">diversity_3</span>
+          <div className="w-full max-w-md mb-12 rounded-3xl aspect-[4/3] overflow-hidden shadow-2xl">
+            <Image
+              src="/images/image-065.jpg"
+              alt="Pakistani founders collaborating"
+              width={600}
+              height={450}
+              className="w-full h-full object-cover"
+              priority
+            />
           </div>
           <h1 className="text-4xl lg:text-5xl font-extrabold text-[#002112] tracking-tight leading-tight max-w-sm">
             Build Pakistan&apos;s tomorrow together.

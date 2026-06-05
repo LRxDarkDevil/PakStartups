@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata = {
   title: "About Us | PakStartups",
@@ -88,8 +89,8 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Team Member 1 */}
             <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.12)] transition-shadow group flex flex-col items-center text-center">
-              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
-                <span className="material-symbols-outlined text-6xl text-[#0f5238]">person</span>
+              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
+                <Image src="/images/image-004.jpg" alt="Ahmed Raza" width={128} height={128} className="w-full h-full object-cover" />
               </div>
               <h3 className="font-extrabold text-[#002112] text-xl">Ahmed Raza</h3>
               <p className="text-[#0f5238] font-bold text-sm mb-3">Founder & Architect</p>
@@ -108,8 +109,8 @@ export default function AboutPage() {
 
             {/* Team Member 2 */}
             <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.12)] transition-shadow group flex flex-col items-center text-center">
-              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
-                <span className="material-symbols-outlined text-6xl text-[#0f5238]">person</span>
+              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
+                <Image src="/images/image-045.jpg" alt="Fatima Tariq" width={128} height={128} className="w-full h-full object-cover" />
               </div>
               <h3 className="font-extrabold text-[#002112] text-xl">Fatima Tariq</h3>
               <p className="text-[#0f5238] font-bold text-sm mb-3">Head of Community</p>
@@ -125,8 +126,8 @@ export default function AboutPage() {
 
             {/* Team Member 3 */}
             <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.12)] transition-shadow group flex flex-col items-center text-center">
-              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
-                <span className="material-symbols-outlined text-6xl text-[#0f5238]">person</span>
+              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
+                <Image src="/images/image-040.jpg" alt="The Community" width={128} height={128} className="w-full h-full object-cover" />
               </div>
               <h3 className="font-extrabold text-[#002112] text-xl">The Community</h3>
               <p className="text-[#0f5238] font-bold text-sm mb-3">Volunteers & Contributors</p>
