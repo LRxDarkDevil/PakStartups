@@ -147,13 +147,25 @@ export default function HomePageClient() {
   return (
     <div className="bg-[#e8ffee] text-[#002112] min-h-screen selection:bg-[#b1f0ce] selection:text-[#002114] overflow-hidden" ref={containerRef}>
       
-      {/* Dynamic Grid Background - Light Mode */}
-      <div className="fixed inset-0 z-0 opacity-40 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f523812_1px,transparent_1px),linear-gradient(to_bottom,#0f523812_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      {/* Dynamic Grid Background - Animated Layers */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        {/* Base Grid - slow diagonal drift */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,82,56,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,82,56,0.12)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_85%_75%_at_50%_0%,#000_70%,transparent_100%)] animate-grid-slow" />
+        
+        {/* Radial Pulse - breathing glow from center */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-[60vw] h-[60vw] rounded-full bg-[radial-gradient(circle,rgba(15,82,56,0.08)_0%,transparent_70%)] animate-grid-pulse" />
+        </div>
+
+        {/* Scan Line - horizontal beam sweeping down */}
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#0f5238]/25 to-transparent animate-scan-line" />
+
+        {/* Shimmer Dots - pulsing at grid intersections */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_1.5px_at_center,rgba(15,82,56,0.2)_0%,transparent_100%)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_100%)] animate-shimmer-dots" />
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 md:pt-28 md:pb-20 px-6 lg:px-8 z-10 flex items-center justify-center min-h-[80vh] overflow-hidden">
+      <section className="relative pt-12 pb-16 md:pt-16 md:pb-20 px-6 lg:px-8 z-10 flex items-center justify-center min-h-[80vh] overflow-hidden">
         {/* Glow Orbs - Larger, brighter for SaaS styling, but keeping light mode theme */}
         <motion.div 
           className="absolute top-1/4 left-1/3 w-[50vw] h-[50vw] bg-[#a8e7c5]/50 rounded-full blur-[120px] pointer-events-none -z-10"
@@ -279,16 +291,16 @@ export default function HomePageClient() {
           </motion.div>
 
           {/* Right Column: Interactive SaaS Mock Dashboard Visual */}
-          <div className="lg:col-span-5 relative flex items-center justify-center min-h-[460px] lg:min-h-[520px] w-full mt-10 lg:mt-0">
+          <div className="lg:col-span-5 relative flex items-center justify-center w-full mt-10 lg:mt-0 lg:min-h-[520px]">
             {/* Glow backing */}
-            <div className="absolute w-[300px] h-[300px] bg-[#a8e7c5] rounded-full blur-[80px] opacity-30 -z-10 pointer-events-none" />
+            <div className="absolute w-[300px] h-[300px] bg-[#a8e7c5] rounded-full blur-[80px] opacity-30 -z-10 pointer-events-none hidden lg:block" />
             
             {/* Interactive Dashboard Area */}
-            <div className="relative w-full max-w-[420px] lg:max-w-none h-full scale-90 sm:scale-100 origin-center">
+            <div className="relative w-full max-w-[420px] lg:max-w-none flex flex-col gap-5 lg:block lg:h-full lg:min-h-[460px]">
               
               {/* Card 1: Startup Directory Card */}
               <motion.div 
-                className="absolute top-0 left-0 z-20 bg-white/95 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_15px_35px_rgba(0,0,0,0.08)] rounded-2xl p-4 w-[260px] sm:w-[280px]"
+                className="relative lg:absolute lg:top-0 lg:left-0 z-20 bg-white/95 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_15px_35px_rgba(0,0,0,0.08)] rounded-2xl p-4 w-full sm:w-[280px] mx-auto lg:mx-0 lg:scale-90 xl:scale-100 origin-top-left"
                 variants={float1}
                 animate="animate"
                 whileHover={{ scale: 1.05, zIndex: 50, boxShadow: "0 25px 50px -12px rgba(15,82,56,0.18)", borderColor: "#0f5238" }}
@@ -333,7 +345,7 @@ export default function HomePageClient() {
 
               {/* Card 2: Founder Matchmaking Card */}
               <motion.div 
-                className="absolute top-28 right-0 sm:right-2 z-30 bg-white/95 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_20px_45px_rgba(0,0,0,0.1)] rounded-2xl p-4 w-[250px] sm:w-[270px]"
+                className="relative lg:absolute lg:top-28 lg:right-2 z-30 bg-white/95 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_20px_45px_rgba(0,0,0,0.1)] rounded-2xl p-4 w-full sm:w-[270px] mx-auto lg:mx-0 lg:scale-90 xl:scale-100 origin-top-right"
                 variants={float2}
                 animate="animate"
                 whileHover={{ scale: 1.05, zIndex: 50, boxShadow: "0 25px 50px -12px rgba(15,82,56,0.18)", borderColor: "#0f5238" }}
@@ -370,7 +382,7 @@ export default function HomePageClient() {
 
               {/* Card 3: B2B Deal Card */}
               <motion.div 
-                className="absolute bottom-0 left-4 sm:left-8 z-40 bg-white/97 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_15px_30px_rgba(0,0,0,0.08)] rounded-2xl p-4 w-[230px] sm:w-[250px]"
+                className="relative lg:absolute lg:bottom-0 lg:left-8 z-40 bg-white/97 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_15px_30px_rgba(0,0,0,0.08)] rounded-2xl p-4 w-full sm:w-[250px] mx-auto lg:mx-0 lg:scale-90 xl:scale-100 origin-bottom-left"
                 variants={float3}
                 animate="animate"
                 whileHover={{ scale: 1.05, zIndex: 50, boxShadow: "0 25px 50px -12px rgba(15,82,56,0.18)", borderColor: "#0f5238" }}
