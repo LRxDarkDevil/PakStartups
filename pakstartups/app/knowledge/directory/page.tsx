@@ -3,14 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getKnowledgeResources, type KnowledgeResource } from "@/lib/services/knowledge";
+import { useAuth } from "@/lib/context/AuthContext";
 
 const CATEGORIES = ["All", "Grants", "Programs", "Legal", "Tools", "Mentorship", "Events"];
 
 export default function KnowledgeDirectoryPage() {
+  const { user } = useAuth();
   const [resources, setResources] = useState<KnowledgeResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
+
+  const [selectedResource, setSelectedResource] = useState<KnowledgeResource | null>(null);
+  const [submittingInquiry, setSubmittingInquiry] = useState(false);
+  const [inquirySuccess, setInquirySuccess] = useState(false);
 
   useEffect(() => {
     getKnowledgeResources("directory")
@@ -18,6 +24,26 @@ export default function KnowledgeDirectoryPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleInquirySubmit = async () => {
+    if (!selectedResource) return;
+    setSubmittingInquiry(true);
+    try {
+      const { addDoc, collection, serverTimestamp } = await import("firebase/firestore");
+      const { db } = await import("@/lib/firebase/config");
+      await addDoc(collection(db, "supportMessages"), {
+        subject: `Directory Resource Inquiry: ${selectedResource.title}`,
+        message: `User is requesting more details/contact link for the resource: ${selectedResource.title} (${selectedResource.org || "No Org"}).`,
+        email: user?.email || "anonymous@pakstartups.org",
+        createdAt: serverTimestamp(),
+      });
+      setInquirySuccess(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmittingInquiry(false);
+    }
+  };
 
   const filtered = resources.filter((r) => {
     const catMatch = activeCategory === "All" || r.category === activeCategory;
@@ -93,10 +119,17 @@ export default function KnowledgeDirectoryPage() {
                   return (
                     <a
                       key={r.id ?? r.title}
-                      href={href}
+                      href={href || "#"}
                       target={href ? "_blank" : undefined}
                       rel="noopener noreferrer"
-                      className="bg-white rounded-xl p-6 border border-[#e0e0e0] hover:shadow-lg hover:border-[#0f5238]/20 transition-all group flex gap-4 no-underline"
+                      onClick={(e) => {
+                        if (!href) {
+                          e.preventDefault();
+                          setSelectedResource(r);
+                          setInquirySuccess(false);
+                        }
+                      }}
+                      className="bg-white rounded-xl p-6 border border-[#e0e0e0] hover:shadow-lg hover:border-[#0f5238]/20 transition-all group flex gap-4 no-underline cursor-pointer"
                     >
                       <div className="w-10 h-10 bg-[#d5fde2] rounded-lg flex items-center justify-center shrink-0 mt-0.5">
                         <span className="material-symbols-outlined text-[#0f5238] text-lg">{r.icon}</span>
@@ -139,6 +172,51 @@ export default function KnowledgeDirectoryPage() {
           </Link>
         </div>
       </div>
+
+      {selectedResource && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 text-center shadow-2xl border border-[#bfc9c1]/20 animate-in fade-in zoom-in duration-200 relative">
+            <button
+              onClick={() => setSelectedResource(null)}
+              className="absolute top-4 right-4 text-[#707973] hover:text-[#002112]"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <div className="w-16 h-16 bg-[#d5fde2] rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="material-symbols-outlined text-[#0f5238] text-3xl font-bold">{selectedResource.icon || "explore"}</span>
+            </div>
+            <h3 className="text-xl font-black text-[#002112] mb-1">{selectedResource.title}</h3>
+            {selectedResource.org && <p className="text-xs font-bold text-[#707973] mb-4">{selectedResource.org}</p>}
+            <p className="text-[#404943] text-sm leading-relaxed mb-6">
+              There is currently no direct website link verified for this resource. You can search the web for updates or request our team to find the official contact details for you.
+            </p>
+
+            {inquirySuccess ? (
+              <div className="bg-[#f0fdf4] text-[#0f5238] p-4 rounded-xl font-bold text-sm mb-4">
+                ✓ Request submitted! We will notify you once we verify the link.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(selectedResource.title + " " + (selectedResource.org || ""))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-all flex items-center justify-center gap-2 text-sm no-underline"
+                >
+                  <span className="material-symbols-outlined text-base">search</span> Search on Web
+                </a>
+                <button
+                  onClick={handleInquirySubmit}
+                  disabled={submittingInquiry}
+                  className="w-full py-3 border border-[#0f5238] text-[#0f5238] rounded-lg font-bold hover:bg-[#d5fde2] transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-55"
+                >
+                  {submittingInquiry ? "Submitting Request..." : "Request Verification"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

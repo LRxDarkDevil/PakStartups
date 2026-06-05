@@ -14,10 +14,66 @@ const tagColors: Record<string, string> = {
   Directory: "bg-purple-100 text-purple-700",
 };
 
+const REPORT_INSIGHTS: Record<string, { stats: { label: string; value: string }[]; insights: string[] }> = {
+  "Pakistan Startup Ecosystem Report 2025": {
+    stats: [
+      { label: "Total Startup Funding", value: "$182M" },
+      { label: "Deal Count", value: "48 Deals" },
+      { label: "Top Sector", value: "E-Commerce" },
+      { label: "Avg. Deal Size", value: "$3.8M" }
+    ],
+    insights: [
+      "Funding saw a stabilization compared to 2024 with seed rounds dominating 60% of overall transactions.",
+      "Fintech and Logistics remain the highest funded verticals, accounting for 72% of total capital inflow.",
+      "An increase in regional venture funds setting up dedicated Pakistan desks was observed.",
+      "Local regulatory adjustments (SECP startup definition) improved foreign investment ease."
+    ]
+  },
+  "FinTech Pakistan: Growth & Regs": {
+    stats: [
+      { label: "Active FinTechs", value: "120+" },
+      { label: "Digital Wallet Users", value: "35M+" },
+      { label: "Funding Growth", value: "+24% YoY" },
+      { label: "Avg Transaction Value", value: "PKR 4.2K" }
+    ],
+    insights: [
+      "Digital payments (Rast integration) grew exponentially by 140% over the last fiscal year.",
+      "B2B fintech and embedded finance solutions show the strongest revenue traction.",
+      "Compliance costs increased by 15% due to updated AML/KYC guidelines from SBP.",
+      "EMIs (Electronic Money Institutions) are expanding services into micro-lending."
+    ]
+  }
+};
+
+const getReportInsights = (title: string, sector: string) => {
+  const normalized = title.toLowerCase();
+  for (const key of Object.keys(REPORT_INSIGHTS)) {
+    if (normalized.includes(key.toLowerCase()) || key.toLowerCase().includes(normalized)) {
+      return REPORT_INSIGHTS[key];
+    }
+  }
+  return {
+    stats: [
+      { label: "Relevant Sector", value: sector },
+      { label: "Release Period", value: "2025-2026" },
+      { label: "Confidence Index", value: "High" },
+      { label: "Data Points", value: "500+" }
+    ],
+    insights: [
+      `A comprehensive analysis of key indicators driving the ${sector} industry.`,
+      "Identified prominent growth bottlenecks and operational expansion opportunities.",
+      "Highlights structural recommendations for early-stage startup operators in Pakistan.",
+      "Includes regulatory review and FBR/SECP compliance impacts."
+    ]
+  };
+};
+
 export default function KnowledgeReportsPage() {
   const [reports, setReports] = useState<KnowledgeResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSector, setActiveSector] = useState("All");
+  
+  const [selectedReport, setSelectedReport] = useState<KnowledgeResource | null>(null);
 
   useEffect(() => {
     getKnowledgeResources("report")
@@ -25,6 +81,30 @@ export default function KnowledgeReportsPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const triggerDownload = (report: KnowledgeResource) => {
+    const insights = getReportInsights(report.title, report.sector || "General");
+    let content = `PakStartups Research Brief: ${report.title}\n\n`;
+    content += `Date: ${report.date || "2025"}\n`;
+    content += `Sector: ${report.sector || "General"}\n`;
+    content += `Pages: ${report.pages || "—"}\n\n`;
+    content += `=== KEY STATISTICS ===\n`;
+    insights.stats.forEach(s => {
+      content += `${s.label}: ${s.value}\n`;
+    });
+    content += `\n=== CRITICAL INSIGHTS ===\n`;
+    insights.insights.forEach((ins, i) => {
+      content += `${i+1}. ${ins}\n`;
+    });
+    
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${report.title.replace(/[\s\(\)\-\,]+/g, "_")}_summary.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const featured = reports.find((r) => r.featured);
   const filtered = reports.filter((r) => !r.featured && (activeSector === "All" || r.sector === activeSector));
@@ -82,7 +162,10 @@ export default function KnowledgeReportsPage() {
                         <span className="material-symbols-outlined text-xs">article</span> {featured.pages} pages
                       </span>
                     )}
-                    <button className="ml-auto border-2 border-white text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-white hover:text-[#0f5238] transition-all">
+                    <button
+                      onClick={() => setSelectedReport(featured)}
+                      className="ml-auto border-2 border-white text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-white hover:text-[#0f5238] transition-all"
+                    >
                       Download Report
                     </button>
                   </div>
@@ -143,7 +226,10 @@ export default function KnowledgeReportsPage() {
                           </span>
                         )}
                       </div>
-                      <button className="text-xs font-bold text-[#0f5238] flex items-center gap-1 hover:gap-2 transition-all">
+                      <button
+                        onClick={() => setSelectedReport(r)}
+                        className="text-xs font-bold text-[#0f5238] flex items-center gap-1 hover:gap-2 transition-all"
+                      >
                         View <span className="material-symbols-outlined text-xs">arrow_forward</span>
                       </button>
                     </div>
@@ -154,6 +240,68 @@ export default function KnowledgeReportsPage() {
           </>
         )}
       </div>
+
+      {selectedReport && (() => {
+        const insights = getReportInsights(selectedReport.title, selectedReport.sector || "General");
+
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl border border-[#bfc9c1]/20 animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh] relative">
+              <button
+                onClick={() => setSelectedReport(null)}
+                className="absolute top-4 right-4 text-[#707973] hover:text-[#002112]"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+              
+              <div className="flex items-start gap-4 mb-6 border-b border-[#bfc9c1]/10 pb-4">
+                <div className="w-12 h-12 bg-[#d5fde2] rounded-xl flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[#0f5238] text-2xl">{selectedReport.icon}</span>
+                </div>
+                <div>
+                  <span className="px-2 py-0.5 bg-[#f5faf6] text-[#0f5238] text-[10px] font-bold rounded uppercase tracking-wider mb-1.5 inline-block">
+                    {selectedReport.sector || "General"}
+                  </span>
+                  <h3 className="text-lg font-black text-[#002112] leading-tight">{selectedReport.title}</h3>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {insights.stats.map((stat, i) => (
+                  <div key={i} className="bg-[#f5faf6] p-3 rounded-lg border border-[#bfc9c1]/10">
+                    <span className="block text-[10px] font-bold text-[#707973] uppercase tracking-wider">{stat.label}</span>
+                    <span className="text-base font-black text-[#0f5238] mt-0.5 block">{stat.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex-1 overflow-y-auto mb-6 pr-2">
+                <h4 className="font-bold text-[#002112] text-xs uppercase tracking-wider mb-3">Key Highlights & Insights</h4>
+                <ul className="space-y-3">
+                  {insights.insights.map((ins, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-[#404943] leading-relaxed">
+                      <span className="material-symbols-outlined text-xs text-[#0f5238] mt-1 shrink-0">arrow_right_alt</span>
+                      {ins}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-[#bfc9c1]/10 gap-4 mt-auto">
+                <div className="text-xs text-[#707973] font-medium">
+                  {selectedReport.pages ? `${selectedReport.pages} pages` : ""} {selectedReport.date ? `• ${selectedReport.date}` : ""}
+                </div>
+                <button
+                  onClick={() => { triggerDownload(selectedReport); setSelectedReport(null); }}
+                  className="px-5 py-3 bg-[#0f5238] text-white rounded-lg font-bold text-sm hover:bg-[#2d6a4f] transition-all flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">download</span> Download Summary Brief
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

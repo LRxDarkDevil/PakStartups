@@ -6,7 +6,7 @@ import Link from "next/link";
 import { addDoc, collection, doc, getDoc, getDocs, orderBy, query, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
-import { downvoteIdea, upvoteIdea } from "@/lib/services/ideas";
+import { downvoteIdea, upvoteIdea, type Idea } from "@/lib/services/ideas";
 
 type Comment = { id: string; body: string; authorName: string; createdAt?: { toDate?: () => Date } | string | null };
 
@@ -15,19 +15,43 @@ function IdeaViewContent() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const id = params.get("id") ?? "";
-  const [idea, setIdea] = useState<Record<string, unknown> | null>(null);
+  const [idea, setIdea] = useState<Idea | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
+  const [hasUpvoted, setHasUpvoted] = useState(false);
+  const [hasDownvoted, setHasDownvoted] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     (async () => {
       const snap = await getDoc(doc(db, "ideas", id));
-      if (snap.exists()) setIdea({ id: snap.id, ...snap.data() });
+      if (snap.exists()) setIdea({ id: snap.id, ...snap.data() } as Idea);
       const commentsSnap = await getDocs(query(collection(db, "ideas", id, "comments"), orderBy("createdAt", "desc")));
       setComments(commentsSnap.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as Comment));
     })();
   }, [id]);
+
+  const handleUpvoteClick = async () => {
+    if (!id || !idea) return;
+    if (hasUpvoted) return;
+    let diff = 1;
+    if (hasDownvoted) diff = 2;
+    setIdea((prev) => (prev ? { ...prev, upvotes: (prev.upvotes ?? 0) + diff } : null));
+    setHasUpvoted(true);
+    setHasDownvoted(false);
+    await upvoteIdea(id);
+  };
+
+  const handleDownvoteClick = async () => {
+    if (!id || !idea) return;
+    if (hasDownvoted) return;
+    let diff = -1;
+    if (hasUpvoted) diff = -2;
+    setIdea((prev) => (prev ? { ...prev, upvotes: Math.max(0, (prev.upvotes ?? 0) + diff) } : null));
+    setHasDownvoted(true);
+    setHasUpvoted(false);
+    await downvoteIdea(id);
+  };
 
   const handleComment = async () => {
     if (!user) {
@@ -52,9 +76,24 @@ function IdeaViewContent() {
       <div className="bg-white rounded-2xl p-8 border border-[#dbeee2] space-y-6">
         <h1 className="text-3xl font-black text-[#002112]">{String(idea?.title ?? "Idea details")}</h1>
         <p className="text-[#404943]">{String(idea?.desc ?? "Open the idea board to view more.")}</p>
-        <div className="flex gap-3">
-          <button onClick={() => void upvoteIdea(id)} className="px-4 py-2 rounded-lg bg-[#d5fde2] text-[#0f5238] font-bold">Upvote</button>
-          <button onClick={() => void downvoteIdea(id)} className="px-4 py-2 rounded-lg bg-[#f5faf6] text-[#0f5238] font-bold">Downvote</button>
+        
+        <div className="flex items-center gap-4 py-2">
+          <div className="flex items-center gap-2 bg-[#f0fdf4] rounded-xl p-1 border border-[#bfc9c1]/20">
+            <button
+              onClick={() => void handleUpvoteClick()}
+              className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg font-bold text-sm transition-all active:scale-95 ${hasUpvoted ? "bg-[#0f5238] text-white shadow-md" : "bg-[#d5fde2] text-[#0f5238] hover:bg-[#b4ef9d]"}`}
+            >
+              <span className="material-symbols-outlined text-sm">arrow_upward</span>
+              Upvote ({idea?.upvotes ?? 0})
+            </button>
+            <button
+              onClick={() => void handleDownvoteClick()}
+              className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg font-bold text-sm transition-all active:scale-95 ${hasDownvoted ? "bg-[#7c1d1d] text-white shadow-md" : "bg-[#f5faf6] text-[#707973] hover:bg-red-50 hover:text-[#7c1d1d]"}`}
+            >
+              <span className="material-symbols-outlined text-sm">arrow_downward</span>
+              Downvote
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3 pt-4 border-t border-[#e0e0e0]">

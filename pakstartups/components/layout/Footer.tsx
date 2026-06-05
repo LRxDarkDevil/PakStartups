@@ -11,7 +11,7 @@ const footerLinks = {
   ],
   Resources: [
     { label: "Knowledge Hub", href: "/knowledge" },
-    { label: "Legal Templates", href: "/knowledge" },
+    { label: "Legal Templates", href: "/knowledge/toolkit" },
     { label: "Blog & Insights", href: "/blog" },
     { label: "Help / FAQ", href: "/faq" },
     { label: "Idea Validation", href: "/ideas" },
@@ -21,8 +21,8 @@ const footerLinks = {
 
 const socialLinks = [
   { icon: "forum", label: "Reddit", href: "https://reddit.com/r/PakStartups" },
-  { icon: "chat", label: "Discord", href: "#" },
-  { icon: "public", label: "LinkedIn", href: "#" },
+  { icon: "chat", label: "Discord", href: "https://discord.gg/pakstartups" },
+  { icon: "public", label: "LinkedIn", href: "https://linkedin.com/company/pakstartups" },
   { icon: "alternate_email", label: "Email", href: "mailto:hello@pakstartups.org" },
 ];
 
@@ -93,7 +93,7 @@ export default function Footer() {
             <Link href="/terms" className="text-xs text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
               Terms of Service
             </Link>
-            <Link href="mailto:hello@pakstartups.org" className="text-xs text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
+            <Link href="/contact" className="text-xs text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
               Contact
             </Link>
           </div>

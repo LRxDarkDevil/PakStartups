@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -21,6 +22,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, profile } = useAuth();
   const router = useRouter();
+  const [adminSearch, setAdminSearch] = useState("");
+  const [showNotifMenu, setShowNotifMenu] = useState(false);
 
   const displayName = profile?.fullName || user?.displayName || "Admin";
   const initials = displayName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -41,8 +44,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="relative w-full max-w-md hidden md:block">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#404943] text-lg">search</span>
             <input
+              value={adminSearch}
+              onChange={(e) => setAdminSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && adminSearch.trim()) {
+                  router.push(`/admin/users?search=${encodeURIComponent(adminSearch.trim())}`);
+                }
+              }}
               className="w-full bg-[#dee4e0] border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-[#0f5238] outline-none placeholder:text-[#404943]/60"
-              placeholder="Search startups, users..."
+              placeholder="Search users..."
               type="text"
             />
           </div>
@@ -51,9 +61,27 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           <Link href="/" className="text-[#0f5238] border border-[#0f5238]/20 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#b1f0ce] transition-colors">
             ← Public Site
           </Link>
-          <button className="p-1 hover:bg-[#e3eae6] rounded-full transition-colors hidden sm:block">
-            <span className="material-symbols-outlined hover:text-[#0f5238]">notifications</span>
-          </button>
+          <div className="relative">
+            <button onClick={() => setShowNotifMenu(!showNotifMenu)} className="p-1 hover:bg-[#e3eae6] rounded-full transition-colors hidden sm:block relative">
+              <span className="material-symbols-outlined hover:text-[#0f5238]">notifications</span>
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
+            </button>
+            {showNotifMenu && (
+              <div className="absolute right-0 top-10 w-80 bg-white rounded-xl shadow-2xl border border-[#e0e0e0] overflow-hidden z-50 py-2">
+                <p className="px-4 py-2 text-xs font-bold text-[#002112] border-b border-[#f0f0f0]">Admin Alerts</p>
+                <div className="divide-y divide-[#f0f0f0] max-h-60 overflow-y-auto">
+                  <div className="p-3 hover:bg-[#f5faf6] transition-colors">
+                    <p className="text-xs text-[#002112] font-semibold">New Startup Submission pending review</p>
+                    <p className="text-[10px] text-[#707973] mt-0.5">2 hours ago</p>
+                  </div>
+                  <div className="p-3 hover:bg-[#f5faf6] transition-colors">
+                    <p className="text-xs text-[#002112] font-semibold">New Volunteer Application submitted</p>
+                    <p className="text-[10px] text-[#707973] mt-0.5">5 hours ago</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           {/* Admin avatar dropdown */}
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-[#0f5238] flex items-center justify-center text-white text-xs font-black ring-2 ring-[#f5fbf7]">

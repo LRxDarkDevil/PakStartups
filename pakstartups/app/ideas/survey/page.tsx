@@ -40,6 +40,7 @@ export default function SurveyBuilderPage() {
   const [preview, setPreview] = useState(false);
   const [copied, setCopied] = useState(false);
   const [previewAnswers, setPreviewAnswers] = useState<Record<string, string>>({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const addQuestion = () => {
     const newQ: Question = {
@@ -141,11 +142,31 @@ export default function SurveyBuilderPage() {
           ))}
         </div>
         <div className="mt-8 flex gap-3">
-          <button className="flex-1 py-3 bg-[#0f5238] text-white rounded-xl font-bold hover:bg-[#2d6a4f] transition-all">
+          <button onClick={() => setShowSuccessModal(true)} className="flex-1 py-3 bg-[#0f5238] text-white rounded-xl font-bold hover:bg-[#2d6a4f] transition-all">
             Submit Response
           </button>
         </div>
         <p className="text-center text-xs text-[#707973] mt-4">This is a preview. Responses are not saved.</p>
+
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-8 text-center shadow-2xl border border-[#bfc9c1]/20 animate-in fade-in zoom-in duration-200">
+              <div className="w-16 h-16 bg-[#d5fde2] rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="material-symbols-outlined text-[#0f5238] text-3xl font-bold">check_circle</span>
+              </div>
+              <h3 className="text-2xl font-black text-[#002112] mb-3">Response Submitted!</h3>
+              <p className="text-[#404943] text-sm leading-relaxed mb-6">
+                Thank you for participating! Since this is a preview mode demonstration, your responses were validated and processed locally, and no database writes were made.
+              </p>
+              <button
+                onClick={() => { setShowSuccessModal(false); setPreview(false); }}
+                className="w-full py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-colors"
+              >
+                Back to Builder
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -7,6 +7,8 @@ import {
   type DocumentSnapshot
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 type PlatformUser = {
   id: string;
@@ -34,12 +36,20 @@ function formatDate(ts: PlatformUser["createdAt"]) {
 
 const ROLES = ["founder", "freelancer", "student", "investor", "mentor", "admin"];
 
-export default function UserManagementPage() {
+function UserManagementContent() {
+  const searchParams = useSearchParams();
   const [users, setUsers] = useState<PlatformUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<Set<string>>(new Set());
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  useEffect(() => {
+    const queryParam = searchParams.get("search") || "";
+    if (queryParam) {
+      setSearch(queryParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setLoading(true);
@@ -164,5 +174,13 @@ export default function UserManagementPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function UserManagementPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center"><span className="inline-block w-8 h-8 border-4 border-[#0f5238]/20 border-t-[#0f5238] rounded-full animate-spin" /></div>}>
+      <UserManagementContent />
+    </Suspense>
   );
 }

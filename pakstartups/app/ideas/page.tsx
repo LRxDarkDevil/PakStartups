@@ -188,7 +188,13 @@ export default function IdeasPage() {
                 ))}
                 <div className="relative ml-auto">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707973]">search</span>
-                  <input type="text" placeholder="Search ideas..." className="pl-10 pr-4 py-2 bg-[#f5f5f5] rounded-lg text-sm outline-none" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    type="text"
+                    placeholder="Search ideas..."
+                    className="pl-10 pr-4 py-2 bg-[#f5f5f5] rounded-lg text-sm outline-none"
+                  />
                 </div>
               </div>
 

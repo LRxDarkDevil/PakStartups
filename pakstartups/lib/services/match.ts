@@ -71,7 +71,20 @@ export async function getReceivedRequests(uid: string): Promise<ConnectionReques
   return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as ConnectionRequest);
 }
 
+export async function checkConnectionExists(fromUid: string, toUid: string): Promise<boolean> {
+  const q = query(
+    collection(db, CONNECTIONS_COL),
+    where("fromUid", "==", fromUid),
+    where("toUid", "==", toUid),
+    limit(1)
+  );
+  const snap = await getDocs(q);
+  return !snap.empty;
+}
+
 export async function sendConnectionRequest(from: { uid: string; name: string }, to: { uid: string; name: string }) {
+  const exists = await checkConnectionExists(from.uid, to.uid);
+  if (exists) return null;
   return addDoc(collection(db, CONNECTIONS_COL), {
     fromUid: from.uid,
     fromName: from.name,

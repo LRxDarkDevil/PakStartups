@@ -49,6 +49,23 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
     fetchStartup();
   }, [slug]);
 
+  useEffect(() => {
+    if (!user || !startup?.ownerId) return;
+    const checkRequest = async () => {
+      const q = query(
+        collection(db, "connections"),
+        where("fromUid", "==", user.uid),
+        where("toUid", "==", startup.ownerId),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setRequestSent(true);
+      }
+    };
+    checkRequest();
+  }, [user, startup?.ownerId]);
+
   if (loading) {
     return (
       <main className="max-w-8xl mx-auto px-8 py-8 bg-[#e8ffee] min-h-screen">
@@ -114,12 +131,14 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
                 <span className="material-symbols-outlined text-xl">edit</span> Edit Startup
               </Link>
             ) : (
-              <button onClick={() => void handleConnect()} className="flex items-center gap-2 px-6 py-3 bg-[#0f5238] text-white rounded-lg font-bold shadow-xl hover:-translate-y-[2px] transition-all active:scale-95">
-                <span className="material-symbols-outlined text-xl">connect_without_contact</span> Connect with Founder
+              <button
+                onClick={() => void handleConnect()}
+                disabled={requestSent}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold shadow-xl hover:-translate-y-[2px] transition-all active:scale-95 ${requestSent ? "bg-[#d5fde2] text-[#0f5238]" : "bg-[#0f5238] text-white hover:opacity-90"} disabled:opacity-60`}
+              >
+                <span className="material-symbols-outlined text-xl">{requestSent ? "done" : "connect_without_contact"}</span>
+                {requestSent ? "Request Sent ✓" : "Connect with Founder"}
               </button>
-            )}
-            {requestSent && (
-              <span className="flex items-center px-4 py-3 bg-[#d5fde2] text-[#0f5238] rounded-lg font-bold text-sm">Connection request sent</span>
             )}
             {startup.website && (
               <a href={startup.website} target="_blank" rel="noopener noreferrer"
@@ -196,13 +215,19 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
             </div>
           )}
 
-          <div className="bg-[#0f5238] p-8 rounded-xl text-white">
-            <h4 className="font-black text-lg mb-3">Interested in connecting?</h4>
-            <p className="text-[#a8e7c5] text-sm mb-4">Reach out to {startup.ownerName} to explore collaborations, investment, or partnerships.</p>
-            <button onClick={() => void handleConnect()} className="w-full bg-white text-[#0f5238] font-bold py-3 rounded-lg text-sm hover:bg-[#d5fde2] transition-colors">
-              Send Connection Request
-            </button>
-          </div>
+          {!isOwner && (
+            <div className="bg-[#0f5238] p-8 rounded-xl text-white">
+              <h4 className="font-black text-lg mb-3">Interested in connecting?</h4>
+              <p className="text-[#a8e7c5] text-sm mb-4">Reach out to {startup.ownerName} to explore collaborations, investment, or partnerships.</p>
+              <button
+                onClick={() => void handleConnect()}
+                disabled={requestSent}
+                className={`w-full font-bold py-3 rounded-lg text-sm transition-all active:scale-95 ${requestSent ? "bg-[#d5fde2] text-[#0f5238]" : "bg-white text-[#0f5238] hover:bg-[#d5fde2]"} disabled:opacity-80`}
+              >
+                {requestSent ? "Connection Request Sent ✓" : "Send Connection Request"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </main>

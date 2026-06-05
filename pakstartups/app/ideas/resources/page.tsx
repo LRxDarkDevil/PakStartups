@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getIdeaResources, type IdeaResource } from "@/lib/services/ideaResources";
+import { useAuth } from "@/lib/context/AuthContext";
 
 const TABS = ["All", "Templates", "Playbooks", "Tools", "Reading"];
 
@@ -23,9 +24,15 @@ const formatIcons: Record<string, string> = {
 };
 
 export default function IdeaResourcesPage() {
+  const { user } = useAuth();
   const [resources, setResources] = useState<IdeaResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
+
+  const [requestResource, setRequestResource] = useState<IdeaResource | null>(null);
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedSuccess, setSubmittedSuccess] = useState(false);
 
   useEffect(() => {
     getIdeaResources()
@@ -33,6 +40,36 @@ export default function IdeaResourcesPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleCardClick = (r: IdeaResource) => {
+    if (!r.href) {
+      setRequestResource(r);
+      setEmail(user?.email || "");
+      setSubmittedSuccess(false);
+    }
+  };
+
+  const handleRequestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !requestResource) return;
+    setIsSubmitting(true);
+    try {
+      const { addDoc, collection, serverTimestamp } = await import("firebase/firestore");
+      const { db } = await import("@/lib/firebase/config");
+      await addDoc(collection(db, "resourceRequests"), {
+        resourceId: requestResource.id || requestResource.title,
+        resourceTitle: requestResource.title,
+        email: email.trim(),
+        userId: user?.uid || null,
+        createdAt: serverTimestamp(),
+      });
+      setSubmittedSuccess(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filtered = resources.filter((r) => activeTab === "All" || r.tab === activeTab);
 
@@ -86,7 +123,8 @@ export default function IdeaResourcesPage() {
               return (
                 <div
                   key={r.id ?? r.title}
-                  className="bg-white rounded-xl p-6 border border-[#e0e0e0] hover:shadow-lg hover:border-[#0f5238]/20 transition-all group flex flex-col"
+                  onClick={() => handleCardClick(r)}
+                  className={`bg-white rounded-xl p-6 border border-[#e0e0e0] hover:shadow-lg hover:border-[#0f5238]/20 transition-all group flex flex-col ${!isInternal ? "cursor-pointer" : ""}`}
                 >
                   <Wrapper>
                     <div className="flex items-start justify-between mb-4">
@@ -144,6 +182,49 @@ export default function IdeaResourcesPage() {
           </Link>
         </div>
       </div>
+
+      {requestResource && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 text-center shadow-2xl border border-[#bfc9c1]/20 animate-in fade-in zoom-in duration-200 relative">
+            <button
+              onClick={() => setRequestResource(null)}
+              className="absolute top-4 right-4 text-[#707973] hover:text-[#002112]"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <div className="w-16 h-16 bg-[#d5fde2] rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="material-symbols-outlined text-[#0f5238] text-3xl font-bold">{requestResource.icon || "description"}</span>
+            </div>
+            <h3 className="text-xl font-black text-[#002112] mb-2">{requestResource.title}</h3>
+            <p className="text-[#404943] text-sm leading-relaxed mb-6">
+              This regulatory compliance template/resource is currently being updated for the latest SECP and local guidelines. Join the early access queue to receive the updated pack automatically in your inbox.
+            </p>
+            {submittedSuccess ? (
+              <div className="bg-[#f0fdf4] text-[#0f5238] p-4 rounded-xl font-bold text-sm mb-2">
+                ✓ Added to early access queue! We will email you once it launches.
+              </div>
+            ) : (
+              <form onSubmit={handleRequestSubmit} className="space-y-4">
+                <input
+                  type="email"
+                  required
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#f5faf6] border border-[#bfc9c1]/30 rounded-lg outline-none focus:ring-2 focus:ring-[#0f5238]/30 text-sm"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3 bg-[#0f5238] text-white rounded-lg font-bold hover:bg-[#2d6a4f] transition-all disabled:opacity-55"
+                >
+                  {isSubmitting ? "Joining Queue..." : "Request Early Access"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

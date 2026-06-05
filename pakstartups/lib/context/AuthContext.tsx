@@ -33,6 +33,7 @@ export type UserProfile = {
   savedIdeaIds?: string[];
   notificationPrefs?: Record<string, boolean>;
   privacyPrefs?: Record<string, string>;
+  views?: number;
 };
 
 type AuthContextType = {

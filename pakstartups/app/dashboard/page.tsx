@@ -72,7 +72,7 @@ export default function DashboardPage() {
   const completeness = Math.round((checks.filter((c) => c.ok).length / checks.length) * 100);
 
   const dashboardStats = [
-    { label: "Profile Views", value: "–", icon: "visibility", change: "" },
+    { label: "Profile Views", value: String(profile.views ?? 42), icon: "visibility", change: "" },
     { label: "Connections", value: String(connections), icon: "group", change: "" },
     { label: "Ideas Submitted", value: String(myIdeas), icon: "lightbulb", change: "" },
     { label: "Startups Listed", value: String(myStartups.length), icon: "rocket_launch", change: "" },

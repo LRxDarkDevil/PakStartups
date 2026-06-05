@@ -153,6 +153,12 @@ export default function StartupsPage() {
                 <div>
                   <h3 className="font-bold text-[#002112] mb-4">Category</h3>
                   <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setActiveCategory("All")}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${activeCategory === "All" ? "bg-[#0f5238] text-white" : "bg-white text-[#0f5238] hover:bg-[#d5fde2]"}`}
+                    >
+                      All Categories
+                    </button>
                     {categories.map((cat) => (
                       <button
                         key={cat}

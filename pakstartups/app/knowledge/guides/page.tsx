@@ -12,11 +12,75 @@ const levelColors: Record<string, string> = {
   Advanced: "bg-purple-100 text-purple-800",
 };
 
+const GUIDE_STEPS: Record<string, { title: string; content: string }[]> = {
+  "Company Registration in Pakistan (SECP)": [
+    {
+      title: "Step 1: Name Reservation",
+      content: "Choose three unique names. Submit them to SECP via the eServices portal. Fee is PKR 200. SECP typically approves within 1-2 working days."
+    },
+    {
+      title: "Step 2: Documentation Drafting",
+      content: "Draft your Memorandum of Association (MOA) and Articles of Association (AOA) detailing principal business activities and share distribution."
+    },
+    {
+      title: "Step 3: Document Submission & Payment",
+      content: "Upload signed documents, CNIC copies of all directors, and bank receipts for incorporation fee (ranges from PKR 1,000 to 5,000 based on capital)."
+    },
+    {
+      title: "Step 4: Certificate of Incorporation",
+      content: "SECP reviews documents. Once approved, the digital incorporation certificate is sent to your registered email address. Congratulations, your entity is live!"
+    }
+  ],
+  "FBR NTN Registration & Tax Filings": [
+    {
+      title: "Step 1: Obtain Company NTN",
+      content: "Go to FBR Iris portal. Register the company using incorporation details. This requires a business bank account and office tenancy agreement."
+    },
+    {
+      title: "Step 2: Register for Sales Tax (STRN)",
+      content: "If you deal in taxable goods or services, register for Sales Tax (STRN). In Pakistan, services are taxed at provincial levels (PRA, SRB, etc.)."
+    },
+    {
+      title: "Step 3: Biometric Verification",
+      content: "Directors must visit a local FBR facilitation center (LTO/MTO) for fingerprint biometric verification within 30 days of registration."
+    },
+    {
+      title: "Step 4: Monthly & Annual Filings",
+      content: "File monthly sales tax returns and annual income tax returns. Keep meticulous records of business invoices to claim input tax credits."
+    }
+  ]
+};
+
+const getGuideSteps = (title: string, category: string) => {
+  const normalized = title.toLowerCase();
+  for (const key of Object.keys(GUIDE_STEPS)) {
+    if (normalized.includes(key.toLowerCase()) || key.toLowerCase().includes(normalized)) {
+      return GUIDE_STEPS[key];
+    }
+  }
+  return [
+    {
+      title: "1. Foundations & Fundamentals",
+      content: `Begin by understanding the core concepts of ${title}. Research target audiences, collect initial validation data, and outline key project milestones.`
+    },
+    {
+      title: "2. Strategic Execution",
+      content: `Create a comprehensive operational checklist for this ${category} phase. Implement standard practices, optimize pipelines, and review compliance parameters.`
+    },
+    {
+      title: "3. Measuring Progress & Scaling",
+      content: `Establish feedback loops and KPIs. Regularly check performance metrics and expand activities once initial assumptions are validated.`
+    }
+  ];
+};
+
 export default function KnowledgeGuidesPage() {
   const [guides, setGuides] = useState<KnowledgeResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
+  const [selectedGuide, setSelectedGuide] = useState<KnowledgeResource | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
     getKnowledgeResources("guide")
@@ -123,7 +187,10 @@ export default function KnowledgeGuidesPage() {
                           {g.readTime}
                         </span>
                       )}
-                      <button className="text-xs font-bold text-[#0f5238] flex items-center gap-1 hover:gap-2 transition-all ml-auto">
+                      <button
+                        onClick={() => { setSelectedGuide(g); setCurrentStep(0); }}
+                        className="text-xs font-bold text-[#0f5238] flex items-center gap-1 hover:gap-2 transition-all ml-auto"
+                      >
                         Read Guide <span className="material-symbols-outlined text-xs">arrow_forward</span>
                       </button>
                     </div>
@@ -144,6 +211,72 @@ export default function KnowledgeGuidesPage() {
           Coming Soon →
         </button>
       </section>
+
+      {selectedGuide && (() => {
+        const steps = getGuideSteps(selectedGuide.title, selectedGuide.category);
+        const step = steps[currentStep] || { title: "", content: "" };
+        const progress = Math.round(((currentStep + 1) / steps.length) * 100);
+
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl border border-[#bfc9c1]/20 animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh] relative">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-[#bfc9c1]/20 pb-4 mb-6">
+                <div>
+                  <span className="px-2.5 py-0.5 bg-[#f5faf6] text-[#0f5238] text-[10px] font-bold rounded uppercase tracking-wider mb-2 inline-block">
+                    {selectedGuide.category} • {selectedGuide.level || "Beginner"}
+                  </span>
+                  <h3 className="text-xl font-black text-[#002112] leading-tight">{selectedGuide.title}</h3>
+                </div>
+                <button
+                  onClick={() => setSelectedGuide(null)}
+                  className="text-[#707973] hover:text-[#002112] ml-4 shrink-0"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-[#f5faf6] rounded-full h-1.5 mb-6 overflow-hidden">
+                <div className="bg-[#0f5238] h-1.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+              </div>
+
+              {/* Body Content */}
+              <div className="flex-1 overflow-y-auto mb-6 pr-2">
+                <h4 className="font-bold text-[#002112] text-lg mb-3">{step.title}</h4>
+                <p className="text-[#404943] leading-relaxed text-sm whitespace-pre-line">{step.content}</p>
+              </div>
+
+              {/* Footer Controls */}
+              <div className="flex justify-between items-center pt-4 border-t border-[#bfc9c1]/20">
+                <button
+                  onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                  disabled={currentStep === 0}
+                  className="px-4 py-2 text-sm font-bold text-[#0f5238] hover:bg-[#d5fde2] rounded-lg transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  Previous
+                </button>
+                <span className="text-xs text-[#707973] font-medium">Step {currentStep + 1} of {steps.length}</span>
+                {currentStep < steps.length - 1 ? (
+                  <button
+                    onClick={() => setCurrentStep(prev => prev + 1)}
+                    className="px-5 py-2 bg-[#0f5238] text-white rounded-lg font-bold text-sm hover:opacity-90 transition-all"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setSelectedGuide(null)}
+                    className="px-5 py-2 bg-[#2d6a4f] text-white rounded-lg font-bold text-sm hover:opacity-90 transition-all flex items-center gap-1"
+                  >
+                    Finish <span className="material-symbols-outlined text-xs">check</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

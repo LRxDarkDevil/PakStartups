@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { arrayRemove, arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { getMatchProfiles, getMatchProfilesByIds, getMyConnections, getReceivedRequests, sendConnectionRequest, type MatchProfile } from "@/lib/services/match";
 import { auth } from "@/lib/firebase/config";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -58,6 +58,21 @@ export default function MatchPage() {
   const [connecting, setConnecting] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState<Set<string>>(new Set());
   const [bookmarking, setBookmarking] = useState<Set<string>>(new Set());
+  const [sentRequestToUids, setSentRequestToUids] = useState<Set<string>>(new Set());
+
+  // Fetch existing connections sent by the current user to initialize connection state
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const q = query(
+        collection(db, "connections"),
+        where("fromUid", "==", user.uid)
+      );
+      const snap = await getDocs(q);
+      const uids = new Set(snap.docs.map((d) => d.data().toUid));
+      setSentRequestToUids(uids);
+    })();
+  }, [user]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, setUser);
@@ -256,14 +271,19 @@ export default function MatchPage() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleConnect(p)}
-                          disabled={!user || connected.has(p.id!) || connecting.has(p.id!)}
-                          className={`flex-grow py-2.5 rounded-lg font-bold text-sm transition-all active:scale-95 ${connected.has(p.id!) ? "bg-[#d5fde2] text-[#0f5238]" : "bg-[#0f5238] text-white hover:opacity-90"} disabled:opacity-60`}
+                          onClick={(e) => { e.stopPropagation(); handleConnect(p); }}
+                          disabled={!user || connected.has(p.id!) || connecting.has(p.id!) || sentRequestToUids.has(p.uid)}
+                          className={`flex-grow py-2.5 rounded-lg font-bold text-sm transition-all active:scale-95 ${connected.has(p.id!) || sentRequestToUids.has(p.uid) ? "bg-[#d5fde2] text-[#0f5238]" : "bg-[#0f5238] text-white hover:opacity-90"} disabled:opacity-60`}
                         >
-                          {connecting.has(p.id!) ? "Sending..." : connected.has(p.id!) ? "Request Sent ✓" : "Connect"}
+                          {connecting.has(p.id!) ? "Sending..." : (connected.has(p.id!) || sentRequestToUids.has(p.uid)) ? "Request Sent ✓" : "Connect"}
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); if (p.id) void handleBookmark(p.id); }} className="p-2.5 border border-[#bfc9c1]/30 rounded-lg text-[#0f5238] hover:bg-[#d5fde2] transition-colors">
-                          <span className="material-symbols-outlined">bookmark</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (p.id) void handleBookmark(p.id); }}
+                          className={`p-2.5 border border-[#bfc9c1]/30 rounded-lg hover:bg-[#d5fde2] transition-all flex items-center justify-center ${profile?.savedMatchProfileIds?.includes(p.id!) ? "bg-[#d5fde2] text-[#0f5238] font-bold" : "text-[#707973]"}`}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {profile?.savedMatchProfileIds?.includes(p.id!) ? "bookmark" : "bookmark_border"}
+                          </span>
                         </button>
                       </div>
                     </div>
