@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import AdminGuard from "@/components/admin/AdminGuard";
@@ -38,8 +39,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       {/* TopNavBar */}
       <header className="flex justify-between items-center h-16 px-8 sticky top-0 z-40 bg-[#dee4e0]/80 backdrop-blur-xl border-b border-[#bfc9c1]/20">
         <div className="flex-1 flex items-center gap-6">
-          <Link href="/admin" className="font-bold text-[#0f5238] uppercase tracking-widest text-lg hover:opacity-80 transition-opacity">
-            PakStartups Admin
+          <Link href="/admin" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <Image
+              src="/logo.png"
+              alt="PakStartups Logo"
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-lg"
+            />
+            <span className="font-bold text-[#0f5238] uppercase tracking-widest text-lg">Admin</span>
           </Link>
           <div className="relative w-full max-w-md hidden md:block">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#404943] text-lg">search</span>

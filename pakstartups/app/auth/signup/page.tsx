@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { loginWithGoogle } from "@/lib/firebase/auth";
 
@@ -30,9 +31,13 @@ export default function SignUpPage() {
         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, #0f5238 1px, transparent 0)", backgroundSize: "40px 40px" }} />
         <div className="z-10 text-center flex flex-col items-center">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-[#0f5238] rounded-xl flex items-center justify-center shadow-lg">
-              <span className="material-symbols-outlined text-white text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="PakStartups Logo"
+              width={48}
+              height={48}
+              className="w-12 h-12 rounded-xl shadow-lg"
+            />
             <span className="text-3xl font-black text-[#0f5238] tracking-tighter">PakStartups</span>
           </div>
           <div className="w-full max-w-md mb-12 bg-[#9cd686]/40 rounded-3xl aspect-[4/3] flex items-center justify-center">
@@ -52,7 +57,13 @@ export default function SignUpPage() {
       <section className="w-full md:w-1/2 bg-[#f9f9ff] flex items-center justify-center px-6 py-12 md:px-12">
         <div className="w-full max-w-[400px]">
           <div className="flex items-center gap-2 mb-10 md:hidden">
-            <span className="material-symbols-outlined text-[#0f5238] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
+            <Image
+              src="/logo.png"
+              alt="PakStartups Logo"
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-lg"
+            />
             <span className="text-xl font-black text-[#0f5238] tracking-tighter">PakStartups</span>
           </div>
 

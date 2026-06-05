@@ -38,7 +38,7 @@ export default function Footer() {
               <Image
                 src="/logo.png"
                 alt="PakStartups Logo"
-                width={160}
+                width={40}
                 height={40}
                 className="h-10 w-auto object-contain"
               />

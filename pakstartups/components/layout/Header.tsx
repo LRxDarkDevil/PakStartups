@@ -53,7 +53,7 @@ export default function Header() {
           <Image
             src="/logo.png"
             alt="PakStartups Logo"
-            width={140}
+            width={36}
             height={36}
             className="h-9 w-auto object-contain"
             priority
