@@ -54,7 +54,7 @@ function hydrateMatchProfile(id: string, data: Omit<MatchProfile, "id">): MatchP
   return { id, ...data, ...canonical, city: data.city };
 }
 
-export async function getMatchProfiles(role?: string, regionId?: RegionId): Promise<MatchProfile[]> {
+export async function getMatchProfiles(role?: string, locationFilter?: string): Promise<MatchProfile[]> {
   const q = query(
     collection(db, PROFILES_COL),
     where("openToConnect", "==", true),
@@ -64,7 +64,11 @@ export async function getMatchProfiles(role?: string, regionId?: RegionId): Prom
   const snaps = await getDocs(q);
   let results = snaps.docs.map((d) => hydrateMatchProfile(d.id, d.data() as Omit<MatchProfile, "id">));
   if (role) results = results.filter((p) => p.role === role);
-  if (regionId) results = results.filter((p) => p.regionId === regionId);
+  if (locationFilter && locationFilter !== "All Cities") {
+    results = isRegionId(locationFilter)
+      ? results.filter((p) => p.regionId === locationFilter)
+      : results.filter((p) => p.city === locationFilter);
+  }
   return results.slice(0, 30);
 }
 
