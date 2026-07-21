@@ -4,12 +4,22 @@ import {
   doc, setDoc, deleteDoc, getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import {
+  createCanonicalLocation,
+  isRegionId,
+  type CanonicalLocation,
+  type RegionId,
+} from "@/lib/location";
 
 export type MatchProfile = {
   id?: string;
   uid: string;
   name: string;
   city: string;
+  country?: CanonicalLocation["country"];
+  countryCode?: CanonicalLocation["countryCode"];
+  regionId?: RegionId;
+  region?: string;
   role: "Founder" | "Tech Lead" | "Student" | "Freelancer" | "Mentor";
   looking: string;
   skills: string[];
@@ -30,7 +40,21 @@ export type ConnectionRequest = {
 const PROFILES_COL = "matchProfiles";
 const CONNECTIONS_COL = "connections";
 
-export async function getMatchProfiles(role?: string, city?: string): Promise<MatchProfile[]> {
+type MatchProfileInput = Omit<
+  MatchProfile,
+  "id" | "createdAt" | "country" | "countryCode" | "region"
+> & { regionId?: RegionId };
+
+function hydrateMatchProfile(id: string, data: Omit<MatchProfile, "id">): MatchProfile {
+  const canonical = createCanonicalLocation({
+    regionId: isRegionId(data.regionId) ? data.regionId : undefined,
+    city: data.city,
+  });
+
+  return { id, ...data, ...canonical, city: data.city };
+}
+
+export async function getMatchProfiles(role?: string, regionId?: RegionId): Promise<MatchProfile[]> {
   const q = query(
     collection(db, PROFILES_COL),
     where("openToConnect", "==", true),
@@ -38,16 +62,16 @@ export async function getMatchProfiles(role?: string, city?: string): Promise<Ma
     limit(100),
   );
   const snaps = await getDocs(q);
-  let results = snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as MatchProfile);
+  let results = snaps.docs.map((d) => hydrateMatchProfile(d.id, d.data() as Omit<MatchProfile, "id">));
   if (role) results = results.filter((p) => p.role === role);
-  if (city && city !== "All Cities") results = results.filter((p) => p.city === city);
+  if (regionId) results = results.filter((p) => p.regionId === regionId);
   return results.slice(0, 30);
 }
 
 export async function getMatchProfilesByIds(ids: string[]): Promise<MatchProfile[]> {
   if (ids.length === 0) return [];
   const snaps = await getDocs(query(collection(db, PROFILES_COL), where("uid", "in", ids.slice(0, 10))));
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as MatchProfile);
+  return snaps.docs.map((d) => hydrateMatchProfile(d.id, d.data() as Omit<MatchProfile, "id">));
 }
 
 export async function getMyConnections(uid: string): Promise<ConnectionRequest[]> {
@@ -101,13 +125,16 @@ export async function updateConnectionStatus(connId: string, status: "accepted" 
   );
 }
 
-export async function upsertMatchProfile(uid: string, data: Omit<MatchProfile, "id" | "createdAt">) {
+export async function upsertMatchProfile(uid: string, data: MatchProfileInput) {
   const ref = doc(db, PROFILES_COL, uid);
   const existing = await getDoc(ref);
+  const canonical = createCanonicalLocation({ regionId: data.regionId, city: data.city });
+  const payload = { ...data, ...canonical, city: data.city };
+
   if (existing.exists()) {
     const { updateDoc } = await import("firebase/firestore");
-    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+    await updateDoc(ref, { ...payload, updatedAt: serverTimestamp() });
   } else {
-    await setDoc(ref, { ...data, createdAt: serverTimestamp() });
+    await setDoc(ref, { ...payload, createdAt: serverTimestamp() });
   }
 }
