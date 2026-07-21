@@ -36,7 +36,10 @@ export type Startup = {
 const COL = "startups";
 
 type StartupDocument = Omit<Startup, "id">;
-type StartupSubmission = Omit<Startup, "id" | "status" | "views" | "createdAt" | keyof CanonicalLocation> & {
+type StartupSubmission = Omit<
+  Startup,
+  "id" | "status" | "views" | "createdAt" | "country" | "countryCode" | "region" | "regionId"
+> & {
   regionId?: RegionId;
 };
 
