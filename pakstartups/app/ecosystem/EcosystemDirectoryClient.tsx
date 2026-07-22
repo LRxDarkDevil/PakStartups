@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import { arrayRemove, arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { formatLocation, REGIONS, type RegionId } from "@/lib/location";
 import { getEcosystemOrgs, type EcosystemOrg } from "@/lib/services/ecosystem";
 
 const CATEGORY_TABS = [
@@ -17,14 +18,14 @@ const CATEGORY_TABS = [
   { label: "GOVERNMENT", type: "Government" },
 ];
 
-const CITIES = ["All", "Karachi", "Lahore", "Islamabad", "Rawalpindi", "Peshawar"];
+type RegionFilter = "all" | RegionId;
 
 const typeColors: Record<string, string> = {
-  "Incubator": "bg-[#0f5238] text-white",
-  "Accelerator": "bg-[#2d6a4f] text-white",
+  Incubator: "bg-[#0f5238] text-white",
+  Accelerator: "bg-[#2d6a4f] text-white",
   "Co-Working": "bg-[#376a28] text-white",
   "Venture Capital": "bg-[#1e5111] text-white",
-  "Government": "bg-[#2d6a4f] text-white",
+  Government: "bg-[#2d6a4f] text-white",
   "Innovation Hub": "bg-[#0f5238] text-white",
 };
 
@@ -35,7 +36,7 @@ export default function EcosystemDirectoryClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Set<string>>(new Set());
   const [activeType, setActiveType] = useState<string | null>(null);
-  const [activeCity, setActiveCity] = useState("All");
+  const [activeRegion, setActiveRegion] = useState<RegionFilter>("all");
   const savedOrgIds = profile?.savedOrganizationIds ?? [];
 
   useEffect(() => {
@@ -50,37 +51,49 @@ export default function EcosystemDirectoryClient() {
       router.push("/auth/signup");
       return;
     }
+
     const ref = doc(db, "users", user.uid);
     const alreadySaved = savedOrgIds.includes(orgId);
     setSaving((prev) => new Set([...prev, orgId]));
-    await updateDoc(ref, {
-      savedOrganizationIds: alreadySaved ? arrayRemove(orgId) : arrayUnion(orgId),
-    });
-    setSaving((prev) => {
-      const next = new Set(prev);
-      next.delete(orgId);
-      return next;
-    });
+
+    try {
+      await updateDoc(ref, {
+        savedOrganizationIds: alreadySaved ? arrayRemove(orgId) : arrayUnion(orgId),
+      });
+    } finally {
+      setSaving((prev) => {
+        const next = new Set(prev);
+        next.delete(orgId);
+        return next;
+      });
+    }
   };
 
   const filteredOrgs = orgs.filter((org) => {
     const typeMatch = !activeType || org.type === activeType;
-    const cityMatch = activeCity === "All" || org.city === activeCity;
-    return typeMatch && cityMatch;
+    const regionMatch = activeRegion === "all" || org.regionId === activeRegion;
+    return typeMatch && regionMatch;
   });
+
+  const clearFilters = () => {
+    setActiveType(null);
+    setActiveRegion("all");
+  };
 
   return (
     <>
       {/* Category tabs */}
       <div className="bg-[#d5fde2] border-b border-[#bfc9c1]/30">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="flex gap-6 overflow-x-auto py-2 no-scrollbar">
+          <div className="flex gap-6 overflow-x-auto py-2 no-scrollbar" aria-label="Organization category filters">
             {CATEGORY_TABS.map((tab) => {
               const isActive = activeType === tab.type;
               return (
                 <button
+                  type="button"
                   key={tab.label}
                   onClick={() => setActiveType(tab.type)}
+                  aria-pressed={isActive}
                   className={`py-3 text-xs font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
                     isActive
                       ? "text-[#0f5238] border-b-2 border-[#0f5238]"
@@ -97,24 +110,41 @@ export default function EcosystemDirectoryClient() {
 
       {/* Region filter + count */}
       <div className="max-w-7xl mx-auto px-8 py-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-sm font-bold text-[#002112] uppercase tracking-wider">Region:</span>
-          {CITIES.map((city) => (
+        <fieldset className="flex items-center gap-3 flex-wrap">
+          <legend className="sr-only">Filter organizations by region</legend>
+          <span aria-hidden="true" className="text-sm font-bold text-[#002112] uppercase tracking-wider">
+            Region:
+          </span>
+          <button
+            type="button"
+            onClick={() => setActiveRegion("all")}
+            aria-pressed={activeRegion === "all"}
+            className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors ${
+              activeRegion === "all"
+                ? "bg-[#0f5238] text-white"
+                : "border border-[#bfc9c1] text-[#404943] hover:border-[#0f5238] hover:text-[#0f5238]"
+            }`}
+          >
+            All
+          </button>
+          {REGIONS.map((region) => (
             <button
-              key={city}
-              onClick={() => setActiveCity(city)}
+              type="button"
+              key={region.id}
+              onClick={() => setActiveRegion(region.id)}
+              aria-pressed={activeRegion === region.id}
               className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors ${
-                activeCity === city
+                activeRegion === region.id
                   ? "bg-[#0f5238] text-white"
                   : "border border-[#bfc9c1] text-[#404943] hover:border-[#0f5238] hover:text-[#0f5238]"
               }`}
             >
-              {city}
+              {region.label}
             </button>
           ))}
-        </div>
+        </fieldset>
         {!loading && (
-          <span className="text-sm text-[#404943]">
+          <span className="text-sm text-[#404943]" aria-live="polite">
             Showing <b>{filteredOrgs.length}</b> of <b>{orgs.length}</b> organizations
           </span>
         )}
@@ -124,8 +154,8 @@ export default function EcosystemDirectoryClient() {
       <div className="max-w-7xl mx-auto px-8 pb-20">
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-white rounded-xl p-8 border border-[#e0e0e0]">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="animate-pulse bg-white rounded-xl p-8 border border-[#e0e0e0]">
                 <div className="w-12 h-12 bg-[#e0e0e0] rounded-xl mb-4" />
                 <div className="h-5 bg-[#e0e0e0] rounded w-3/4 mb-2" />
                 <div className="h-4 bg-[#e0e0e0] rounded w-1/2 mb-4" />
@@ -140,7 +170,8 @@ export default function EcosystemDirectoryClient() {
             <p className="font-bold text-[#002112]">No organizations found</p>
             <p className="text-sm text-[#404943] mt-1">Try a different category or region.</p>
             <button
-              onClick={() => { setActiveType(null); setActiveCity("All"); }}
+              type="button"
+              onClick={clearFilters}
               className="mt-4 px-6 py-2 border border-[#0f5238] text-[#0f5238] rounded-lg font-bold text-sm hover:bg-[#0f5238] hover:text-white transition-all"
             >
               Clear Filters
@@ -160,12 +191,13 @@ export default function EcosystemDirectoryClient() {
                 </div>
                 <h3 className="text-xl font-bold text-[#002112] mb-1">{org.name}</h3>
                 <p className="text-[#404943] text-sm flex items-center gap-1 mb-3">
-                  <span className="material-symbols-outlined text-sm">location_on</span>{org.city}
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">location_on</span>
+                  {formatLocation(org)}
                 </p>
                 <p className="text-[#404943] text-sm mb-4 line-clamp-2">{org.desc}</p>
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {org.tags.map((t) => (
-                    <span key={t} className="px-2 py-0.5 bg-[#d5fde2] text-[#0f5238] text-[10px] font-bold rounded uppercase">{t}</span>
+                  {org.tags.map((tag) => (
+                    <span key={tag} className="px-2 py-0.5 bg-[#d5fde2] text-[#0f5238] text-[10px] font-bold rounded uppercase">{tag}</span>
                   ))}
                 </div>
                 <div className="flex items-center justify-between pt-4 border-t border-[#e0e0e0]">
@@ -178,8 +210,16 @@ export default function EcosystemDirectoryClient() {
                       Apply / Contact <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </a>
                   )}
-                  <button onClick={() => void toggleBookmark(org.id ?? org.name)} className="text-[#707973] hover:text-[#0f5238] transition-colors" aria-label={`Bookmark ${org.name}`}>
-                    <span className="material-symbols-outlined">{saving.has(org.id ?? org.name) || savedOrgIds.includes(org.id ?? org.name) ? "bookmark" : "bookmark_border"}</span>
+                  <button
+                    type="button"
+                    onClick={() => void toggleBookmark(org.id ?? org.name)}
+                    className="text-[#707973] hover:text-[#0f5238] transition-colors disabled:opacity-60"
+                    aria-label={`Bookmark ${org.name}`}
+                    disabled={saving.has(org.id ?? org.name)}
+                  >
+                    <span className="material-symbols-outlined">
+                      {savedOrgIds.includes(org.id ?? org.name) ? "bookmark" : "bookmark_border"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -194,7 +234,11 @@ export default function EcosystemDirectoryClient() {
               Help us build the most comprehensive directory of Pakistani startups and support organizations.
             </p>
           </div>
-          <button onClick={() => router.push(user ? "/ecosystem/add" : "/auth/signup")} className="border-2 border-white text-white px-8 py-3 rounded-lg font-bold hover:bg-white hover:text-[#0f5238] transition-all whitespace-nowrap uppercase tracking-wider text-sm">
+          <button
+            type="button"
+            onClick={() => router.push(user ? "/ecosystem/add" : "/auth/signup")}
+            className="border-2 border-white text-white px-8 py-3 rounded-lg font-bold hover:bg-white hover:text-[#0f5238] transition-all whitespace-nowrap uppercase tracking-wider text-sm"
+          >
             Add Organization
           </button>
         </div>
