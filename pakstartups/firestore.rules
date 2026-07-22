@@ -225,8 +225,15 @@ service cloud.firestore {
         && validCanonicalLocation(request.resource.data);
       allow update: if locationChangeValid() && (
         isAdmin()
-        // Organizer can edit content but cannot change status, isFeatured, or the rsvpCount counter
-        || (isOwner(resource.data.organizerId) && statusUnchanged() && noneChanged(['organizerId', 'rsvpCount', 'isFeatured']))
+        // Organizer can edit content but cannot change moderation, announcement, or RSVP fields
+        || (isOwner(resource.data.organizerId) && statusUnchanged() && noneChanged([
+          'organizerId',
+          'rsvpCount',
+          'isFeatured',
+          'announcementStartTs',
+          'announcementEndTs',
+          'announcementPriority'
+        ]))
         // Any authenticated user may RSVP / un-RSVP (±1 only)
         || (isAuth() && onlyChanged(['rsvpCount']) && request.resource.data.rsvpCount is int && counterStep('rsvpCount'))
       );

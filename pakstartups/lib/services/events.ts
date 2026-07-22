@@ -21,6 +21,7 @@ import {
   type CanonicalLocation,
   type RegionId,
 } from "@/lib/location";
+import { selectEventAnnouncement } from "@/lib/events/announcement";
 
 export type EventType = "WORKSHOP" | "MEETUP" | "DEMO" | "PITCHING" | "CONFERENCE" | "TALK";
 export type EventStatus = "pending" | "approved" | "past" | "rejected";
@@ -67,6 +68,9 @@ export type EventItem = {
   rsvpCount: number;
   status: EventStatus;
   isFeatured: boolean;
+  announcementStartTs?: Timestamp | null;
+  announcementEndTs?: Timestamp | null;
+  announcementPriority?: number;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -78,6 +82,9 @@ export type EventInput = Omit<
   | "id"
   | "status"
   | "isFeatured"
+  | "announcementStartTs"
+  | "announcementEndTs"
+  | "announcementPriority"
   | "rsvpCount"
   | "createdAt"
   | "updatedAt"
@@ -88,6 +95,13 @@ export type EventInput = Omit<
 
 export type EventAdminUpdate = Omit<EventInput, "organizerId"> & {
   organizerName: string;
+};
+
+export type EventAnnouncementAdminUpdate = {
+  isFeatured: boolean;
+  announcementStartTs: Timestamp | null;
+  announcementEndTs: Timestamp | null;
+  announcementPriority: number;
 };
 
 function cleanOptionalString(value: string | null | undefined) {
@@ -140,6 +154,23 @@ function validateEventInput(data: EventInput | EventAdminUpdate) {
   }
 }
 
+function validateAnnouncementUpdate(data: EventAnnouncementAdminUpdate) {
+  if (
+    !Number.isInteger(data.announcementPriority) ||
+    data.announcementPriority < 0 ||
+    data.announcementPriority > 100
+  ) {
+    throw new Error("Announcement priority must be a whole number from 0 to 100.");
+  }
+  if (
+    data.announcementStartTs &&
+    data.announcementEndTs &&
+    data.announcementEndTs.toMillis() < data.announcementStartTs.toMillis()
+  ) {
+    throw new Error("Announcement end must be after its start.");
+  }
+}
+
 function hydrateEvent(id: string, data: Omit<EventItem, "id">): EventItem {
   const city = data.city ?? (data.isOnline ? "Online" : data.location);
   const canonical = createCanonicalLocation({
@@ -161,6 +192,13 @@ function hydrateEvent(id: string, data: Omit<EventItem, "id">): EventItem {
     priceType: data.priceType ?? "free",
     bookingMode: data.bookingMode ?? "internal-rsvp",
     updateState: data.updateState ?? "scheduled",
+    announcementStartTs: data.announcementStartTs ?? null,
+    announcementEndTs: data.announcementEndTs ?? null,
+    announcementPriority:
+      typeof data.announcementPriority === "number" &&
+      Number.isInteger(data.announcementPriority)
+        ? Math.min(100, Math.max(0, data.announcementPriority))
+        : 0,
   };
 }
 
@@ -228,6 +266,23 @@ export async function getUpcomingEvents(): Promise<EventItem[]> {
     .filter((event) => event.updateState !== "cancelled");
 }
 
+export async function getAnnouncementEvent(
+  now = Timestamp.now(),
+): Promise<EventItem | null> {
+  const eventsQuery = query(
+    collection(db, COL),
+    where("status", "==", "approved"),
+    where("dateTs", ">=", now),
+    orderBy("dateTs", "asc"),
+    limit(100),
+  );
+  const snapshots = await getDocs(eventsQuery);
+  const events = snapshots.docs.map((snapshot) =>
+    hydrateEvent(snapshot.id, snapshot.data() as Omit<EventItem, "id">),
+  );
+  return selectEventAnnouncement(events, now.toMillis());
+}
+
 export async function getPastEvents(): Promise<EventItem[]> {
   const now = Timestamp.now();
   const pastStatus = query(collection(db, COL), where("status", "==", "past"), orderBy("dateTs", "desc"), limit(20));
@@ -287,6 +342,9 @@ export async function proposeEvent(data: EventInput) {
     organizerId: data.organizerId,
     status: "pending",
     isFeatured: false,
+    announcementStartTs: null,
+    announcementEndTs: null,
+    announcementPriority: 0,
     rsvpCount: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -302,6 +360,9 @@ export async function createEventByAdmin(data: EventAdminUpdate, organizerId: st
     organizerId: normalizedOrganizerId,
     status: "pending",
     isFeatured: false,
+    announcementStartTs: null,
+    announcementEndTs: null,
+    announcementPriority: 0,
     rsvpCount: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -316,6 +377,61 @@ export async function updateEventByAdmin(eventId: string, data: EventAdminUpdate
     ...normalizedWriteData(data),
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function updateEventAnnouncementByAdmin(
+  eventId: string,
+  data: EventAnnouncementAdminUpdate,
+) {
+  const normalizedId = eventId.trim();
+  if (!normalizedId) throw new Error("Event ID is required.");
+  validateAnnouncementUpdate(data);
+
+  const eventRef = doc(db, COL, normalizedId);
+  const eventSnapshot = await getDoc(eventRef);
+  if (!eventSnapshot.exists()) throw new Error("Event not found.");
+
+  const event = hydrateEvent(
+    eventSnapshot.id,
+    eventSnapshot.data() as Omit<EventItem, "id">,
+  );
+  const eventStartsAt = event.dateTs?.toMillis() ?? 0;
+  if (
+    event.status !== "approved" ||
+    event.updateState === "cancelled" ||
+    eventStartsAt < Timestamp.now().toMillis()
+  ) {
+    throw new Error("Only approved upcoming events can be announced.");
+  }
+
+  const updates: Promise<void>[] = [];
+  if (data.isFeatured) {
+    const featuredSnapshot = await getDocs(
+      query(collection(db, COL), where("isFeatured", "==", true), limit(20)),
+    );
+    updates.push(
+      ...featuredSnapshot.docs
+        .filter((featuredEvent) => featuredEvent.id !== normalizedId)
+        .map((featuredEvent) =>
+          updateDoc(featuredEvent.ref, {
+            isFeatured: false,
+            updatedAt: serverTimestamp(),
+          }),
+        ),
+    );
+  }
+
+  updates.push(
+    updateDoc(eventRef, {
+      isFeatured: data.isFeatured,
+      announcementStartTs: data.announcementStartTs,
+      announcementEndTs: data.announcementEndTs,
+      announcementPriority: data.announcementPriority,
+      updatedAt: serverTimestamp(),
+    }),
+  );
+
+  await Promise.all(updates);
 }
 
 export async function hasUserRsvped(eventId: string, uid: string) {

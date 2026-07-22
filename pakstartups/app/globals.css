@@ -20,6 +20,16 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-padding-top: 10rem;
+}
+
+@media (min-width: 768px) {
+  html {
+    scroll-padding-top: 8rem;
+  }
+}
+
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   background-color: #e8ffee;

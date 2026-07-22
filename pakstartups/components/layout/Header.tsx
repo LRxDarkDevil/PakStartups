@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { logout } from "@/lib/firebase/auth";
+import EventAnnouncementBar from "./EventAnnouncementBar";
 
 const navLinks = [
   { label: "Directory", href: "/startups" },
@@ -47,6 +48,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#e8ffee]/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(15,82,56,0.06)] font-['Plus_Jakarta_Sans'] antialiased text-sm font-medium">
+      <EventAnnouncementBar />
       <nav className="flex justify-between items-center w-full px-8 py-4 max-w-8xl mx-auto">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 active:scale-95 transform transition-transform cursor-pointer">
