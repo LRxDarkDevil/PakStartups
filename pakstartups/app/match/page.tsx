@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { arrayRemove, arrayUnion, doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { getMatchProfiles, getMatchProfilesByIds, getMyConnections, getReceivedRequests, sendConnectionRequest, type MatchProfile } from "@/lib/services/match";
+import { formatLocation, REGIONS, type RegionId } from "@/lib/location";
 import { auth } from "@/lib/firebase/config";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { useAuth } from "@/lib/context/AuthContext";
 import { db } from "@/lib/firebase/config";
 
 const ROLES = ["Founder", "Freelancer", "Student", "Tech Lead", "Mentor"];
-const CITIES = ["All Cities", "Lahore", "Karachi", "Islamabad", "Faisalabad", "Peshawar", "Rawalpindi", "Multan", "Hyderabad", "Gwadar"];
 
 const roleColors: Record<string, string> = {
   Founder: "bg-[#2d6a4f] text-[#a8e7c5]",
@@ -73,7 +73,7 @@ export default function MatchPage() {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("Browse Matches");
   const [selectedRole, setSelectedRole] = useState("");
-  const [selectedCity, setSelectedCity] = useState("All Cities");
+  const [selectedRegion, setSelectedRegion] = useState<RegionId | "">("");
   const [searchQuery, setSearchQuery] = useState("");
   const [profiles, setProfiles] = useState<MatchProfile[]>([]);
   const [savedProfiles, setSavedProfiles] = useState<MatchProfile[]>([]);
@@ -110,7 +110,7 @@ export default function MatchPage() {
     (async () => {
       try {
         if (activeTab === "Browse Matches") {
-          const data = await getMatchProfiles(selectedRole || undefined, selectedCity !== "All Cities" ? selectedCity : undefined);
+          const data = await getMatchProfiles(selectedRole || undefined, selectedRegion || undefined);
           setProfiles(data);
         } else if (activeTab === "Saved Profiles" && profile?.savedMatchProfileIds?.length) {
           setSavedProfiles(await getMatchProfilesByIds(profile.savedMatchProfileIds));
@@ -129,7 +129,7 @@ export default function MatchPage() {
         setLoading(false);
       }
     })();
-  }, [activeTab, selectedRole, selectedCity, profile?.savedMatchProfileIds?.join(","), user?.uid]);
+  }, [activeTab, selectedRole, selectedRegion, profile?.savedMatchProfileIds?.join(","), user?.uid]);
 
   const handleBookmark = async (profileId: string) => {
     if (!user) {
@@ -182,7 +182,7 @@ export default function MatchPage() {
   const filteredProfiles = profileCards.filter((p) => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
-    return [p.name, p.city, p.role, p.looking, p.skills.join(" ")].join(" ").toLowerCase().includes(q);
+    return [p.name, p.city, p.region, p.role, p.looking, p.skills.join(" ")].join(" ").toLowerCase().includes(q);
   });
 
   const openProfile = (uid: string) => {
@@ -246,15 +246,17 @@ export default function MatchPage() {
                   </div>
                 </div>
 
-                {/* City */}
+                {/* Region */}
                 <div>
-                  <label className="block text-sm font-bold text-[#002112] mb-3 uppercase tracking-wider">City</label>
+                  <label htmlFor="match-region" className="block text-sm font-bold text-[#002112] mb-3 uppercase tracking-wider">Region</label>
                   <select
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
+                    id="match-region"
+                    value={selectedRegion}
+                    onChange={(e) => setSelectedRegion(e.target.value as RegionId | "")}
                     className="w-full py-3 bg-[#c4ecd2] border-none rounded-lg focus:ring-2 focus:ring-[#0f5238]/40 outline-none"
                   >
-                    {CITIES.map((c) => <option key={c}>{c}</option>)}
+                    <option value="">All Regions</option>
+                    {REGIONS.map((region) => <option key={region.id} value={region.id}>{region.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -285,7 +287,7 @@ export default function MatchPage() {
                       </div>
                       <h3 className="text-xl font-extrabold text-[#002112] mb-1">{p.name}</h3>
                       <p className="flex items-center text-[#404943] text-sm mb-6">
-                        <span className="material-symbols-outlined text-sm mr-1">location_on</span>{p.city}
+                        <span className="material-symbols-outlined text-sm mr-1">location_on</span>{formatLocation(p)}
                       </p>
                       <div className="mb-6 flex-grow">
                         <p className="text-xs font-bold text-[#002112] mb-1 uppercase">Looking for</p>
