@@ -107,6 +107,13 @@ const sooner = {
 };
 assert.equal(selectEventAnnouncement([later, sooner], now)?.id, "sooner");
 
+const exactTieB = { ...baseEvent, id: "b-event" };
+const exactTieA = { ...baseEvent, id: "a-event" };
+assert.equal(
+  selectEventAnnouncement([exactTieB, exactTieA], now)?.id,
+  "a-event",
+);
+
 const dismissedUntil = getAnnouncementDismissedUntil(now);
 assert.equal(dismissedUntil - now, EVENT_ANNOUNCEMENT_DISMISSAL_MS);
 assert.equal(isAnnouncementDismissed(String(dismissedUntil), now), true);
@@ -187,6 +194,7 @@ for (const marker of [
 }
 
 for (const marker of [
+  "safeAnnouncementDefaults",
   "announcementStartTs",
   "announcementEndTs",
   "announcementPriority",

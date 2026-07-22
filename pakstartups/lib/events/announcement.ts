@@ -55,10 +55,12 @@ export function selectEventAnnouncement<T extends EventAnnouncementCandidate>(
           (left.announcementPriority ?? 0);
         if (priorityDifference !== 0) return priorityDifference;
 
-        return (
+        const dateDifference =
           (timestampMillis(left.dateTs) ?? Number.MAX_SAFE_INTEGER) -
-          (timestampMillis(right.dateTs) ?? Number.MAX_SAFE_INTEGER)
-        );
+          (timestampMillis(right.dateTs) ?? Number.MAX_SAFE_INTEGER);
+        if (dateDifference !== 0) return dateDifference;
+
+        return (left.id ?? "").localeCompare(right.id ?? "");
       })[0] ?? null
   );
 }

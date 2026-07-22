@@ -46,6 +46,12 @@ service cloud.firestore {
         'country', 'countryCode', 'regionId', 'region', 'city'
       ]) || validCanonicalLocation(request.resource.data);
     }
+    function safeAnnouncementDefaults(data) {
+      return (!('isFeatured' in data) || data.isFeatured == false)
+        && (!('announcementStartTs' in data) || data.announcementStartTs == null)
+        && (!('announcementEndTs' in data) || data.announcementEndTs == null)
+        && (!('announcementPriority' in data) || data.announcementPriority == 0);
+    }
     // Restrict self-assigned roles to the safe allowlist; only admin can set 'admin'
     function roleNotEscalated() {
       return !('role' in request.resource.data) ||
@@ -222,7 +228,8 @@ service cloud.firestore {
         && validString(request.resource.data.title, 5, 200)
         && request.resource.data.status == 'pending'
         && request.resource.data.organizerId == request.auth.uid
-        && validCanonicalLocation(request.resource.data);
+        && validCanonicalLocation(request.resource.data)
+        && safeAnnouncementDefaults(request.resource.data);
       allow update: if locationChangeValid() && (
         isAdmin()
         // Organizer can edit content but cannot change moderation, announcement, or RSVP fields
