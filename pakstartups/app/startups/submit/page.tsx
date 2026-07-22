@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
-import { createCanonicalLocation, REGIONS, type RegionId } from "@/lib/location";
+import { createCanonicalLocation, isRegionId, REGIONS } from "@/lib/location";
 import Link from "next/link";
 
 const steps = ["Basic Info", "Team & Stage", "Review", "Done"];
@@ -18,7 +18,7 @@ type FormData = {
   tagline: string;
   desc: string;
   category: string;
-  regionId: RegionId | "";
+  regionId: string;
   city: string;
   website: string;
   stage: string;
@@ -54,7 +54,7 @@ export default function SubmitStartupPage() {
       if (!form.tagline.trim()) return "Tagline is required.";
       if (!form.desc.trim() || form.desc.length < 20) return "Description must be at least 20 characters.";
       if (!form.category) return "Please select a category.";
-      if (!form.regionId) return "Please select a region.";
+      if (!isRegionId(form.regionId)) return "Please select a valid region.";
     }
     if (step === 1) {
       if (!form.stage) return "Please select your current stage.";
@@ -76,7 +76,7 @@ export default function SubmitStartupPage() {
     const err = validateStep();
     if (err) { setError(err); return; }
     if (!user) { router.push("/auth/login"); return; }
-    if (!form.regionId) { setError("Please select a region."); return; }
+    if (!isRegionId(form.regionId)) { setError("Please select a valid region."); return; }
     setSubmitting(true);
     setError("");
     try {
