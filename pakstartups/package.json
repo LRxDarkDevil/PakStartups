@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seed:legacy": "tsx scripts/seed.mjs",
+    "seed:client": "tsx scripts/seed-client.mjs",
     "seed:ecosystem": "tsx scripts/seed-ecosystem.ts",
     "seed:knowledge": "tsx scripts/seed-knowledge.ts",
     "seed:ideas": "tsx scripts/seed-idea-resources.ts",
