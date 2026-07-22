@@ -1,6 +1,6 @@
 // scripts/seed.mjs
 // Uses Firebase Admin SDK to bypass Firestore security rules.
-// Run: npx tsx scripts/seed.mjs
+// Run: DEMO_SEED_ENABLED=true DEMO_SEED_PROJECT_ID=<project-id> npx tsx scripts/seed.mjs
 // Prerequisites: set FIREBASE_PROJECT_ID and GOOGLE_APPLICATION_CREDENTIALS env, OR
 // set FIREBASE_SERVICE_ACCOUNT_JSON env with the JSON content.
 
@@ -17,17 +17,36 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, "../.env") });
 dotenv.config({ path: join(__dirname, "../.env.local"), override: true });
 
+const configuredProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? process.env.FIREBASE_PROJECT_ID;
+const acknowledgedProjectId = process.env.DEMO_SEED_PROJECT_ID;
+
+if (process.env.DEMO_SEED_ENABLED !== "true") {
+  console.error("Refusing to seed demo data. Set DEMO_SEED_ENABLED=true to continue.");
+  process.exit(1);
+}
+
+if (!configuredProjectId) {
+  console.error("Refusing to seed demo data. Configure FIREBASE_PROJECT_ID or NEXT_PUBLIC_FIREBASE_PROJECT_ID.");
+  process.exit(1);
+}
+
+if (!acknowledgedProjectId || acknowledgedProjectId !== configuredProjectId) {
+  console.error(
+    "Refusing to seed demo data. DEMO_SEED_PROJECT_ID must exactly match the configured Firebase project ID.",
+  );
+  process.exit(1);
+}
+
 function initializeAdmin() {
   if (getApps().length > 0) return getApps()[0];
 
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? process.env.FIREBASE_PROJECT_ID;
 
   if (serviceAccountJson && serviceAccountJson !== "{}") {
-    return initializeApp({ credential: cert(JSON.parse(serviceAccountJson)), projectId });
+    return initializeApp({ credential: cert(JSON.parse(serviceAccountJson)), projectId: configuredProjectId });
   }
 
-  return initializeApp({ credential: applicationDefault(), projectId });
+  return initializeApp({ credential: applicationDefault(), projectId: configuredProjectId });
 }
 
 const db = getFirestore(initializeAdmin());
@@ -64,18 +83,21 @@ const withLocation = (item, location = {}) => ({
   ...(location.city ? { city: location.city } : {}),
 });
 
+const demoStartup = (item, location) =>
+  withLocation({ ...item, recordType: "testimonial-demo", isDemo: true }, location);
+
 // ───────── Seed data ─────────────────────────────────────────────────────────
 
 await seedIfEmpty("startups", [
-  withLocation({ name: "FinFlow", desc: "Revolutionizing digital payments for underserved merchants across Punjab.", stage: "Growth", category: "FinTech", slug: "finflow", logo: "/images/image-055.jpg", ownerId: "seed", ownerName: "Ahmed Raza", status: "approved", views: 0 }, { city: "Lahore" }),
-  withLocation({ name: "AgriSense", desc: "AI-powered soil analysis and weather forecasting for small-scale farmers.", stage: "MVP", category: "AgriTech", slug: "agrisense", logo: "/images/image-056.jpg", ownerId: "seed", ownerName: "Zain Farooq", status: "approved", views: 0 }, { city: "Faisalabad" }),
-  withLocation({ name: "SehatLink", desc: "Connecting rural patients with top-tier specialists through video consults.", stage: "Scaling", category: "HealthTech", slug: "sehatlink", logo: "/images/image-057.jpg", ownerId: "seed", ownerName: "Sara Malik", status: "approved", views: 0 }, { city: "Karachi" }),
-  withLocation({ name: "EduPeak", desc: "Gamified learning platform tailored for the national curriculum of Pakistan.", stage: "Growth", category: "EdTech", slug: "edupeak", logo: "/images/image-058.jpg", ownerId: "seed", ownerName: "Hina Khan", status: "approved", views: 0 }, { city: "Islamabad" }),
-  withLocation({ name: "ZippyCart", desc: "Ultra-fast grocery delivery service operating in metropolitan hubs.", stage: "Scaling", category: "E-Commerce", slug: "zippycart", logo: "/images/image-059.jpg", ownerId: "seed", ownerName: "Osman Ali", status: "approved", views: 0 }, { city: "Lahore" }),
-  withLocation({ name: "SaaSFlow", desc: "Simplified ERP solutions for small to medium scale manufacturing units.", stage: "Idea", category: "SaaS", slug: "saasflow", logo: "/images/image-060.jpg", ownerId: "seed", ownerName: "Bilal Rauf", status: "approved", views: 0 }, { city: "Sialkot" }),
-  withLocation({ name: "CloudOps PK", desc: "Affordable cloud infrastructure management for local tech agencies.", stage: "Growth", category: "SaaS", slug: "cloudops-pk", logo: "/images/image-061.jpg", ownerId: "seed", ownerName: "Madiha Ali", status: "approved", views: 0 }, { city: "Karachi" }),
-  withLocation({ name: "VoltCharge", desc: "Building a nationwide network of EV charging stations in major cities.", stage: "MVP", category: "Cleantech", slug: "voltcharge", logo: "/images/image-062.jpg", ownerId: "seed", ownerName: "Ahmed Khan", status: "approved", views: 0 }, { city: "Islamabad" }),
-  withLocation({ name: "LendCare", desc: "Peer-to-peer lending platform focusing on student and medical micro-loans.", stage: "Growth", category: "FinTech", slug: "lendcare", logo: "/images/image-063.jpg", ownerId: "seed", ownerName: "Fatima Jinnah", status: "approved", views: 0 }, { city: "Peshawar" }),
+  demoStartup({ name: "FinFlow", desc: "Revolutionizing digital payments for underserved merchants across Punjab.", stage: "Growth", category: "FinTech", slug: "finflow", logo: "/images/image-055.jpg", ownerId: "seed", ownerName: "Ahmed Raza", status: "approved", views: 0 }, { city: "Lahore" }),
+  demoStartup({ name: "AgriSense", desc: "AI-powered soil analysis and weather forecasting for small-scale farmers.", stage: "MVP", category: "AgriTech", slug: "agrisense", logo: "/images/image-056.jpg", ownerId: "seed", ownerName: "Zain Farooq", status: "approved", views: 0 }, { city: "Faisalabad" }),
+  demoStartup({ name: "SehatLink", desc: "Connecting rural patients with top-tier specialists through video consults.", stage: "Scaling", category: "HealthTech", slug: "sehatlink", logo: "/images/image-057.jpg", ownerId: "seed", ownerName: "Sara Malik", status: "approved", views: 0 }, { city: "Karachi" }),
+  demoStartup({ name: "EduPeak", desc: "Gamified learning platform tailored for the national curriculum of Pakistan.", stage: "Growth", category: "EdTech", slug: "edupeak", logo: "/images/image-058.jpg", ownerId: "seed", ownerName: "Hina Khan", status: "approved", views: 0 }, { city: "Islamabad" }),
+  demoStartup({ name: "ZippyCart", desc: "Ultra-fast grocery delivery service operating in metropolitan hubs.", stage: "Scaling", category: "E-Commerce", slug: "zippycart", logo: "/images/image-059.jpg", ownerId: "seed", ownerName: "Osman Ali", status: "approved", views: 0 }, { city: "Lahore" }),
+  demoStartup({ name: "SaaSFlow", desc: "Simplified ERP solutions for small to medium scale manufacturing units.", stage: "Idea", category: "SaaS", slug: "saasflow", logo: "/images/image-060.jpg", ownerId: "seed", ownerName: "Bilal Rauf", status: "approved", views: 0 }, { city: "Sialkot" }),
+  demoStartup({ name: "CloudOps PK", desc: "Affordable cloud infrastructure management for local tech agencies.", stage: "Growth", category: "SaaS", slug: "cloudops-pk", logo: "/images/image-061.jpg", ownerId: "seed", ownerName: "Madiha Ali", status: "approved", views: 0 }, { city: "Karachi" }),
+  demoStartup({ name: "VoltCharge", desc: "Building a nationwide network of EV charging stations in major cities.", stage: "MVP", category: "Cleantech", slug: "voltcharge", logo: "/images/image-062.jpg", ownerId: "seed", ownerName: "Ahmed Khan", status: "approved", views: 0 }, { city: "Islamabad" }),
+  demoStartup({ name: "LendCare", desc: "Peer-to-peer lending platform focusing on student and medical micro-loans.", stage: "Growth", category: "FinTech", slug: "lendcare", logo: "/images/image-063.jpg", ownerId: "seed", ownerName: "Fatima Jinnah", status: "approved", views: 0 }, { city: "Peshawar" }),
 ]);
 
 await seedIfEmpty("ideas", [
@@ -118,5 +140,5 @@ await seedIfEmpty("matchProfiles", [
   withLocation({ uid: "seed-6", name: "Madiha Ali", role: "Founder", looking: "CFO partner for a social enterprise focused on financial literacy for women.", skills: ["Finance", "Social Impact", "EdTech"], openToConnect: true }, { city: "Lahore" }),
 ]);
 
-console.log("\n🎉 Seeding complete!");
+console.log(`🎉 Demo seeding complete for acknowledged project ${configuredProjectId}.`);
 process.exit(0);
