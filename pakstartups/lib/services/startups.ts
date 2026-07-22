@@ -10,6 +10,16 @@ import {
   type RegionId,
 } from "@/lib/location";
 
+export const STARTUP_RECORD_TYPES = [
+  "verified",
+  "community-submitted",
+  "nominated",
+  "testimonial-demo",
+  "partner-sponsored",
+] as const;
+
+export type StartupRecordType = (typeof STARTUP_RECORD_TYPES)[number];
+
 export type Startup = {
   id?: string;
   name: string;
@@ -29,16 +39,36 @@ export type Startup = {
   ownerId: string;
   ownerName: string;
   status: "pending" | "approved" | "rejected";
+  /** Origin/trust classification. Missing values are treated as legacy records. */
+  recordType?: StartupRecordType;
+  /** Compatibility flag for fixtures created before recordType was introduced. */
+  isDemo?: boolean;
   views: number;
   createdAt?: unknown;
 };
 
 const COL = "startups";
 
+const PUBLIC_RECORD_TYPES = new Set<StartupRecordType>([
+  "verified",
+  "community-submitted",
+  "nominated",
+  "partner-sponsored",
+]);
+
 type StartupDocument = Omit<Startup, "id">;
 type StartupSubmission = Omit<
   Startup,
-  "id" | "status" | "views" | "createdAt" | "country" | "countryCode" | "region" | "regionId"
+  | "id"
+  | "status"
+  | "views"
+  | "createdAt"
+  | "country"
+  | "countryCode"
+  | "region"
+  | "regionId"
+  | "recordType"
+  | "isDemo"
 > & {
   regionId?: RegionId;
 };
@@ -59,6 +89,15 @@ function hydrateStartup(id: string, data: StartupDocument): Startup {
   };
 }
 
+function isPublicDirectoryRecord(startup: Startup): boolean {
+  if (startup.isDemo || startup.recordType === "testimonial-demo") return false;
+
+  // Historical records predate origin metadata. Keep them visible until an
+  // authorized production audit classifies them, rather than silently hiding
+  // legitimate approved listings.
+  return startup.recordType === undefined || PUBLIC_RECORD_TYPES.has(startup.recordType);
+}
+
 export async function getStartups(cat?: string, regionId?: RegionId): Promise<Startup[]> {
   let q = query(
     collection(db, COL),
@@ -76,7 +115,9 @@ export async function getStartups(cat?: string, regionId?: RegionId): Promise<St
     );
   }
   const snaps = await getDocs(q);
-  const startups = snaps.docs.map((d) => hydrateStartup(d.id, d.data() as StartupDocument));
+  const startups = snaps.docs
+    .map((d) => hydrateStartup(d.id, d.data() as StartupDocument))
+    .filter(isPublicDirectoryRecord);
 
   // Filter after hydration until the migration is complete so legacy city-only
   // records remain discoverable without requiring a temporary composite index.
@@ -100,6 +141,8 @@ export async function submitStartup(data: StartupSubmission) {
   return addDoc(collection(db, COL), {
     ...data,
     ...location,
+    recordType: "community-submitted" satisfies StartupRecordType,
+    isDemo: false,
     status: "pending",
     views: 0,
     createdAt: serverTimestamp(),
