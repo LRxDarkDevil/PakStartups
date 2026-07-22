@@ -41,10 +41,9 @@ function getLocationSource(collectionName: CollectionName, data: DocumentData): 
 }
 
 function buildPatch(collectionName: CollectionName, data: DocumentData): Record<string, unknown> | null {
-  const locationSource = getLocationSource(collectionName, data);
   const canonical = createCanonicalLocation({
     regionId: isRegionId(data.regionId) ? data.regionId : undefined,
-    city: locationSource,
+    city: getLocationSource(collectionName, data),
   });
 
   const desired: Record<string, unknown> = {
@@ -53,10 +52,6 @@ function buildPatch(collectionName: CollectionName, data: DocumentData): Record<
     regionId: canonical.regionId,
     region: canonical.region,
   };
-
-  if (collectionName === "events" && !data.city && locationSource && data.isOnline !== true) {
-    desired.city = locationSource;
-  }
 
   const changed = Object.entries(desired).some(([key, value]) => data[key] !== value);
   if (!changed) return null;
@@ -88,7 +83,7 @@ async function migrateCollection(collectionName: CollectionName) {
     console.log(`${WRITE_ENABLED ? "WRITE" : "DRY-RUN"} ${collectionName}/${document.id}`, {
       regionId: patch.regionId,
       region: patch.region,
-      city: patch.city ?? document.data().city ?? null,
+      existingCity: document.data().city ?? null,
     });
 
     if (!WRITE_ENABLED) continue;
