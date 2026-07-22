@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
+import { getSafeHttpsUrl } from "@/lib/events/presentation";
 import {
   hasUserRsvped,
   rsvpEvent,
@@ -43,6 +44,8 @@ export default function EventActions({
   const [rsvpCount, setRsvpCount] = useState(initialRsvpCount);
   const [status, setStatus] = useState("");
 
+  const safeBookingUrl = useMemo(() => getSafeHttpsUrl(bookingUrl), [bookingUrl]);
+
   const availability = useMemo(() => {
     const now = Date.now();
     const eventEnded = eventStartsAt ? new Date(eventStartsAt).getTime() < now : false;
@@ -54,9 +57,9 @@ export default function EventActions({
     if (eventEnded) return { closed: true, label: "Event ended", reason: "Registration is closed because this event has ended." };
     if (deadlinePassed) return { closed: true, label: "Registration closed", reason: "The registration deadline has passed." };
     if (bookingMode === "internal-rsvp" && full && !rsvped) return { closed: true, label: "Event full", reason: "This event has reached its listed capacity." };
-    if (bookingMode === "external-booking" && !bookingUrl) return { closed: true, label: "Booking unavailable", reason: "The organizer has not supplied a booking link." };
+    if (bookingMode === "external-booking" && !safeBookingUrl) return { closed: true, label: "Booking unavailable", reason: "The organizer has not supplied a valid HTTPS booking link." };
     return { closed: false, label: "", reason: "" };
-  }, [bookingMode, bookingUrl, capacity, eventStartsAt, registrationDeadline, rsvpCount, rsvped, updateMessage, updateState]);
+  }, [bookingMode, capacity, eventStartsAt, registrationDeadline, rsvpCount, rsvped, safeBookingUrl, updateMessage, updateState]);
 
   useEffect(() => {
     let active = true;
@@ -127,7 +130,7 @@ export default function EventActions({
         availability.closed ? (
           <button type="button" disabled className={primaryClass}>{availability.label}</button>
         ) : (
-          <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className={primaryClass}>
+          <a href={safeBookingUrl} target="_blank" rel="noopener noreferrer" className={primaryClass}>
             Book on organizer site
             <span className="sr-only"> (opens in a new tab)</span>
           </a>

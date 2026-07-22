@@ -5,6 +5,7 @@ import {
   buildEventStructuredData,
   formatDateTimeLocal,
   getEventActionState,
+  getSafeHttpsUrl,
   zonedDateTimeToDate,
 } from "../lib/events/presentation";
 import type { EventItem } from "../lib/services/events";
@@ -55,6 +56,10 @@ assert.equal(getEventActionState({ ...baseEvent, rsvpCount: 100 }, Date.parse("2
 assert.equal(getEventActionState({ ...baseEvent, updateState: "cancelled" }, Date.parse("2030-07-01T00:00:00Z")).label, "Event cancelled");
 assert.equal(getEventActionState({ ...baseEvent, bookingMode: "external-booking", bookingUrl: "https://example.com/book" }, Date.parse("2030-07-01T00:00:00Z")).label, "Book on organizer site");
 assert.equal(getEventActionState({ ...baseEvent, bookingMode: "external-booking", bookingUrl: undefined }, Date.parse("2030-07-01T00:00:00Z")).label, "Booking unavailable");
+assert.equal(getEventActionState({ ...baseEvent, bookingMode: "external-booking", bookingUrl: "javascript:alert(1)" }, Date.parse("2030-07-01T00:00:00Z")).label, "Booking unavailable");
+assert.equal(getSafeHttpsUrl("javascript:alert(1)"), undefined);
+assert.equal(getSafeHttpsUrl("http://example.com"), undefined);
+assert.equal(getSafeHttpsUrl("https://example.com/book"), "https://example.com/book");
 
 const zoned = zonedDateTimeToDate("2030-08-01T18:00", "Asia/Karachi");
 assert.ok(zoned);
@@ -82,7 +87,7 @@ const pageSource = readFileSync(join(root, "app/events/[id]/page.tsx"), "utf8");
 const adminSource = readFileSync(join(root, "app/admin/events/page.tsx"), "utf8");
 const sitemapSource = readFileSync(join(root, "app/sitemap.ts"), "utf8");
 
-for (const marker of ["focus-visible:ring-4", "motion-reduce:transition-none", "aria-live=\"polite\"", "<button", "<a href={bookingUrl}"]) {
+for (const marker of ["focus-visible:ring-4", "motion-reduce:transition-none", "aria-live=\"polite\"", "<button", "<a href={safeBookingUrl}"]) {
   assert.ok(actionsSource.includes(marker), `Event actions must include ${marker}`);
 }
 for (const marker of ["generateMetadata", "application/ld+json", "Related upcoming events", "sm:", "lg:", "motion-reduce:transition-none"]) {

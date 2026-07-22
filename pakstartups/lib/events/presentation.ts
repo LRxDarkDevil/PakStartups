@@ -9,6 +9,16 @@ export type EventActionState = {
 
 const DEFAULT_TIMEZONE = "Asia/Karachi";
 
+export function getSafeHttpsUrl(value?: string | null) {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function timestampMillis(value: EventItem["dateTs"] | EventItem["registrationDeadlineTs"]) {
   return value?.toMillis?.() ?? null;
 }
@@ -34,8 +44,8 @@ export function getEventActionState(event: EventItem, nowMs = Date.now()): Event
   if (isFull) {
     return { mode, disabled: true, label: "Event full", reason: "This event has reached its listed capacity." };
   }
-  if (mode === "external-booking" && !event.bookingUrl) {
-    return { mode, disabled: true, label: "Booking unavailable", reason: "The organizer has not supplied a booking link." };
+  if (mode === "external-booking" && !getSafeHttpsUrl(event.bookingUrl)) {
+    return { mode, disabled: true, label: "Booking unavailable", reason: "The organizer has not supplied a valid HTTPS booking link." };
   }
 
   return {
@@ -149,8 +159,9 @@ export function zonedDateTimeToDate(value: string, timeZone = DEFAULT_TIMEZONE) 
 export function buildEventStructuredData(event: EventItem, canonicalUrl: string) {
   const action = getEventActionState(event);
   const startDate = event.dateTs?.toDate().toISOString();
-  const registrationUrl = event.bookingMode === "external-booking" && event.bookingUrl
-    ? event.bookingUrl
+  const externalBookingUrl = getSafeHttpsUrl(event.bookingUrl);
+  const registrationUrl = event.bookingMode === "external-booking" && externalBookingUrl
+    ? externalBookingUrl
     : canonicalUrl;
   const eventStatus = event.updateState === "cancelled"
     ? "https://schema.org/EventCancelled"
