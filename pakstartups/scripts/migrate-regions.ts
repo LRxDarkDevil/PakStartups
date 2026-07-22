@@ -1,7 +1,7 @@
 import { applicationDefault, cert, getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore, type DocumentData } from "firebase-admin/firestore";
 import dotenv from "dotenv";
-import { createCanonicalLocation, isRegionId } from "../lib/location";
+import { createCanonicalLocation, isRegionId, type RegionId } from "../lib/location";
 
 dotenv.config({ path: ".env" });
 dotenv.config({ path: ".env.local", override: true });
@@ -33,16 +33,21 @@ function initializeAdmin() {
 
 function getLocationSource(collectionName: CollectionName, data: DocumentData): string | undefined {
   if (typeof data.city === "string" && data.city.trim()) return data.city.trim();
-  if (collectionName === "events") {
-    if (data.isOnline === true) return "Online";
-    if (typeof data.location === "string" && data.location.trim()) return data.location.trim();
+  if (collectionName === "events" && typeof data.location === "string" && data.location.trim()) {
+    return data.location.trim();
   }
+  return undefined;
+}
+
+function getRegionId(collectionName: CollectionName, data: DocumentData): RegionId | undefined {
+  if (isRegionId(data.regionId)) return data.regionId;
+  if (collectionName === "events" && data.isOnline === true) return "remote-online";
   return undefined;
 }
 
 function buildPatch(collectionName: CollectionName, data: DocumentData): Record<string, unknown> | null {
   const canonical = createCanonicalLocation({
-    regionId: isRegionId(data.regionId) ? data.regionId : undefined,
+    regionId: getRegionId(collectionName, data),
     city: getLocationSource(collectionName, data),
   });
 
