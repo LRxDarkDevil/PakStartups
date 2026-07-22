@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { DEFAULT_SITE_FILTERS, getSiteFilters, saveSiteFilters } from "@/lib/services/siteConfig";
 
 export default function AdminSiteConfigPage() {
-  const [cities, setCities] = useState(DEFAULT_SITE_FILTERS.cities.join("\n"));
+  const [regions, setRegions] = useState(DEFAULT_SITE_FILTERS.regions.join("\n"));
   const [categories, setCategories] = useState(DEFAULT_SITE_FILTERS.categories.join("\n"));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     getSiteFilters().then((filters) => {
-      setCities(filters.cities.join("\n"));
+      setRegions(filters.regions.join("\n"));
       setCategories(filters.categories.join("\n"));
     });
   }, []);
@@ -19,7 +19,7 @@ export default function AdminSiteConfigPage() {
     setSaving(true);
     try {
       await saveSiteFilters({
-        cities: cities.split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
+        regions: regions.split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
         categories: categories.split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
       });
     } finally {
@@ -31,17 +31,18 @@ export default function AdminSiteConfigPage() {
     <div className="p-8 space-y-8 max-w-4xl">
       <div>
         <h2 className="text-3xl font-extrabold text-[#002112] tracking-tight">Site Config</h2>
-        <p className="text-[#404943] font-medium mt-1">Edit directory cities and categories without touching app code.</p>
+        <p className="text-[#404943] font-medium mt-1">Edit directory regions and categories without touching app code.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-[#bfc9c1]/20 p-6">
-          <h3 className="font-bold text-[#002112] mb-3">Cities</h3>
-          <textarea value={cities} onChange={(e) => setCities(e.target.value)} rows={12} className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg outline-none focus:ring-2 focus:ring-[#0f5238]/30 resize-y" />
+          <h3 className="font-bold text-[#002112] mb-3">Regions</h3>
+          <p className="text-sm text-[#707973] mb-3">Use the approved province and region labels shared across discovery features.</p>
+          <textarea aria-label="Directory regions" value={regions} onChange={(e) => setRegions(e.target.value)} rows={12} className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg outline-none focus:ring-2 focus:ring-[#0f5238]/30 resize-y" />
         </div>
         <div className="bg-white rounded-xl border border-[#bfc9c1]/20 p-6">
           <h3 className="font-bold text-[#002112] mb-3">Categories</h3>
-          <textarea value={categories} onChange={(e) => setCategories(e.target.value)} rows={12} className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg outline-none focus:ring-2 focus:ring-[#0f5238]/30 resize-y" />
+          <textarea aria-label="Directory categories" value={categories} onChange={(e) => setCategories(e.target.value)} rows={12} className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg outline-none focus:ring-2 focus:ring-[#0f5238]/30 resize-y" />
         </div>
       </div>
 
