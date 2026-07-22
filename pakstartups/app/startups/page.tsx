@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getStartups, type Startup } from "@/lib/services/startups";
 import { DEFAULT_SITE_FILTERS, getSiteFilters } from "@/lib/services/siteConfig";
+import { formatLocation, REGIONS, type RegionId } from "@/lib/location";
 
 const stageColors: Record<string, string> = {
   Idea: "bg-[#b7f2a0] text-[#032100]",
@@ -34,23 +35,25 @@ function SkeletonCard() {
 const FILTERS = ["All Startups", "Recently Added", "Trending", "By Industry"];
 const STAGES = ["All Stages", "Idea", "MVP", "Growth", "Scaling"];
 
+type RegionFilter = "all" | RegionId;
+
 export default function StartupsPage() {
   const [activeFilter, setActiveFilter] = useState("All Startups");
   const [activeStage, setActiveStage] = useState("All Stages");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [activeCity, setActiveCity] = useState("All Cities");
+  const [activeRegion, setActiveRegion] = useState<RegionFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [startups, setStartups] = useState<Startup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cities, setCities] = useState<string[]>(DEFAULT_SITE_FILTERS.cities);
+  const [configuredRegions, setConfiguredRegions] = useState<string[]>(DEFAULT_SITE_FILTERS.regions);
   const [categories, setCategories] = useState<string[]>(DEFAULT_SITE_FILTERS.categories);
 
   useEffect(() => {
     getSiteFilters().then((filters) => {
-      setCities(filters.cities);
+      setConfiguredRegions(filters.regions);
       setCategories(filters.categories);
     }).catch(() => {
-      setCities(DEFAULT_SITE_FILTERS.cities);
+      setConfiguredRegions(DEFAULT_SITE_FILTERS.regions);
       setCategories(DEFAULT_SITE_FILTERS.categories);
     });
   }, []);
@@ -63,12 +66,23 @@ export default function StartupsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const displayed = startups.filter((s) => {
-    if (activeCategory !== "All" && s.category !== activeCategory) return false;
-    if (activeCity !== "All Cities" && s.city !== activeCity) return false;
-    if (activeStage !== "All Stages" && s.stage !== activeStage) return false;
+  const availableRegions = REGIONS.filter((region) => configuredRegions.includes(region.label));
+  const displayed = startups.filter((startup) => {
+    if (activeCategory !== "All" && startup.category !== activeCategory) return false;
+    if (activeRegion !== "all" && startup.regionId !== activeRegion) return false;
+    if (activeStage !== "All Stages" && startup.stage !== activeStage) return false;
     const q = searchQuery.trim().toLowerCase();
-    if (q && ![s.name, s.desc, s.category, s.city, s.stage].join(" ").toLowerCase().includes(q)) return false;
+    if (
+      q &&
+      ![
+        startup.name,
+        startup.desc,
+        startup.category,
+        startup.city,
+        startup.region,
+        startup.stage,
+      ].join(" ").toLowerCase().includes(q)
+    ) return false;
     return true;
   });
 
@@ -121,10 +135,11 @@ export default function StartupsPage() {
             <div className="sticky top-28 bg-[#d5fde2] rounded-xl p-8 shadow-sm">
               {/* Search */}
               <div className="mb-8">
-                <label className="block text-sm font-bold uppercase tracking-wider text-[#404943] mb-3">Search</label>
+                <label htmlFor="startup-search" className="block text-sm font-bold uppercase tracking-wider text-[#404943] mb-3">Search</label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#404943]">search</span>
                   <input
+                    id="startup-search"
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -133,7 +148,7 @@ export default function StartupsPage() {
                   />
                 </div>
                 <div className="mt-4">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#404943] mb-2">Stage</label>
+                  <h2 className="block text-xs font-bold uppercase tracking-wider text-[#404943] mb-2">Stage</h2>
                   <div className="flex flex-wrap gap-2">
                     {STAGES.map((stage) => (
                       <button
@@ -151,7 +166,7 @@ export default function StartupsPage() {
               <div className="space-y-8">
                 {/* Category Filter */}
                 <div>
-                  <h3 className="font-bold text-[#002112] mb-4">Category</h3>
+                  <h2 className="font-bold text-[#002112] mb-4">Category</h2>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setActiveCategory("All")}
@@ -171,16 +186,19 @@ export default function StartupsPage() {
                   </div>
                 </div>
 
-                {/* City Filter */}
+                {/* Region Filter */}
                 <div>
-                  <h3 className="font-bold text-[#002112] mb-4">City</h3>
+                  <label htmlFor="startup-region" className="block font-bold text-[#002112] mb-4">Region</label>
                   <select
-                    value={activeCity}
-                    onChange={(e) => setActiveCity(e.target.value)}
+                    id="startup-region"
+                    value={activeRegion}
+                    onChange={(e) => setActiveRegion(e.target.value as RegionFilter)}
                     className="w-full py-3 px-3 bg-white border-none rounded-lg focus:ring-2 focus:ring-[#0f5238]/40 outline-none text-[#002112]"
                   >
-                    <option>All Cities</option>
-                    {cities.map((c) => <option key={c}>{c}</option>)}
+                    <option value="all">All Regions</option>
+                    {availableRegions.map((region) => (
+                      <option key={region.id} value={region.id}>{region.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -201,26 +219,26 @@ export default function StartupsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {displayed.map((s) => (
-                  <Link key={s.id} href={`/startups/${s.slug}`} className="group block">
+                {displayed.map((startup) => (
+                  <Link key={startup.id} href={`/startups/${startup.slug}`} className="group block">
                     <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#e8f5ee] hover:shadow-xl hover:border-[#0f5238]/20 transition-all h-full">
                       <div className="h-48 bg-[#d5fde2] flex items-center justify-center relative overflow-hidden">
                         <Image
-                          src={s.logo}
-                          alt={s.name}
+                          src={startup.logo}
+                          alt={startup.name}
                           width={80}
                           height={80}
                           className="w-20 h-20 rounded-2xl object-cover shadow-lg group-hover:scale-105 transition-transform"
                         />
                       </div>
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${stageColors[s.stage] ?? "bg-gray-100"}`}>{s.stage}</span>
-                          <span className="text-xs text-[#707973]">{s.city}</span>
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${stageColors[startup.stage] ?? "bg-gray-100"}`}>{startup.stage}</span>
+                          <span className="text-xs text-[#707973] text-right">{formatLocation(startup)}</span>
                         </div>
-                        <h3 className="text-xl font-extrabold text-[#002112] mb-2 group-hover:text-[#0f5238] transition-colors">{s.name}</h3>
-                        <p className="text-[#404943] text-sm line-clamp-2 mb-4">{s.desc}</p>
-                        <span className="text-xs font-bold text-[#0f5238] bg-[#d5fde2] px-2.5 py-1 rounded-full">{categoryLabels[s.category] ?? s.category}</span>
+                        <h3 className="text-xl font-extrabold text-[#002112] mb-2 group-hover:text-[#0f5238] transition-colors">{startup.name}</h3>
+                        <p className="text-[#404943] text-sm line-clamp-2 mb-4">{startup.desc}</p>
+                        <span className="text-xs font-bold text-[#0f5238] bg-[#d5fde2] px-2.5 py-1 rounded-full">{categoryLabels[startup.category] ?? startup.category}</span>
                       </div>
                     </div>
                   </Link>
