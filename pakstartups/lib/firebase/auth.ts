@@ -11,6 +11,7 @@ import {
   type User,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { createCanonicalLocation } from "@/lib/location";
 import { auth, db } from "./config";
 
 const googleProvider = new GoogleAuthProvider();
@@ -69,7 +70,7 @@ async function createUserProfile(user: User, extra: { fullName: string }) {
       fullName: extra.fullName,
       photoURL: user.photoURL ?? null,
       role: "founder",
-      city: "",
+      ...createCanonicalLocation({ regionId: "other-unknown" }),
       bio: "",
       skills: [],
       socialLinks: {},
