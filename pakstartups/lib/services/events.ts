@@ -50,6 +50,16 @@ function hydrateEvent(id: string, data: Omit<EventItem, "id">): EventItem {
   return { id, ...data, ...canonical, city: data.city };
 }
 
+export async function getEventById(eventId: string): Promise<EventItem | null> {
+  const normalizedId = eventId.trim();
+  if (!normalizedId) return null;
+
+  const snapshot = await getDoc(doc(db, COL, normalizedId));
+  if (!snapshot.exists()) return null;
+
+  return hydrateEvent(snapshot.id, snapshot.data() as Omit<EventItem, "id">);
+}
+
 export async function getUpcomingEvents(): Promise<EventItem[]> {
   const now = Timestamp.now();
   const q = query(
