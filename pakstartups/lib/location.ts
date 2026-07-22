@@ -65,7 +65,15 @@ export function isRegionId(value: unknown): value is RegionId {
 
 export function inferRegionIdFromCity(city?: string | null): RegionId {
   if (!city?.trim()) return "other-unknown";
-  return CITY_TO_REGION[normalizeLocationToken(city)] ?? "other-unknown";
+
+  const normalized = normalizeLocationToken(city);
+  const exactMatch = CITY_TO_REGION[normalized];
+  if (exactMatch) return exactMatch;
+
+  const tokenMatch = Object.entries(CITY_TO_REGION).find(([token]) =>
+    (`_${normalized}_`).includes(`_${token}_`)
+  );
+  return tokenMatch?.[1] ?? "other-unknown";
 }
 
 export function createCanonicalLocation(input: { regionId?: RegionId | null; city?: string | null }): CanonicalLocation {
