@@ -11,11 +11,23 @@ import {
   type RegionId,
 } from "@/lib/location";
 
+export type EventType = "WORKSHOP" | "MEETUP" | "DEMO" | "PITCHING" | "CONFERENCE" | "TALK";
+export type EventStatus = "pending" | "approved" | "past" | "rejected";
+export type EventUpdateState = "scheduled" | "updated" | "postponed" | "cancelled";
+export type EventBookingMode = "internal-rsvp" | "external-booking";
+export type EventPriceType = "free" | "paid";
+
+export type EventSpeaker = {
+  name: string;
+  role?: string;
+  organization?: string;
+};
+
 export type EventItem = {
   id?: string;
   title: string;
   desc: string;
-  type: "WORKSHOP" | "MEETUP" | "DEMO" | "PITCHING" | "CONFERENCE" | "TALK";
+  type: EventType;
   location: string;
   city?: string;
   country?: CanonicalLocation["country"];
@@ -27,17 +39,40 @@ export type EventItem = {
   organizerName: string;
   dateTs: Timestamp | null;
   dateLabel: string;
+  timezone?: string;
+  agenda?: string[];
+  speakers?: EventSpeaker[];
+  capacity?: number;
+  priceType?: EventPriceType;
+  priceAmount?: number;
+  currency?: string;
+  registrationDeadlineTs?: Timestamp | null;
+  accessibilityDetails?: string;
+  updateState?: EventUpdateState;
+  updateMessage?: string;
+  bookingMode?: EventBookingMode;
+  bookingUrl?: string;
+  onlineAccessPolicy?: string;
   rsvpCount: number;
-  status: "pending" | "approved" | "past";
+  status: EventStatus;
   isFeatured: boolean;
   createdAt?: unknown;
+  updatedAt?: unknown;
 };
 
 const COL = "events";
 
 type EventInput = Omit<
   EventItem,
-  "id" | "status" | "isFeatured" | "rsvpCount" | "createdAt" | "country" | "countryCode" | "region"
+  | "id"
+  | "status"
+  | "isFeatured"
+  | "rsvpCount"
+  | "createdAt"
+  | "updatedAt"
+  | "country"
+  | "countryCode"
+  | "region"
 > & { regionId?: RegionId };
 
 function hydrateEvent(id: string, data: Omit<EventItem, "id">): EventItem {
@@ -47,7 +82,17 @@ function hydrateEvent(id: string, data: Omit<EventItem, "id">): EventItem {
     city,
   });
 
-  return { id, ...data, ...canonical, city: data.city };
+  return {
+    id,
+    ...data,
+    ...canonical,
+    city: data.city,
+    agenda: Array.isArray(data.agenda) ? data.agenda.filter(Boolean) : [],
+    speakers: Array.isArray(data.speakers) ? data.speakers.filter((speaker) => speaker?.name) : [],
+    priceType: data.priceType ?? "free",
+    bookingMode: data.bookingMode ?? "internal-rsvp",
+    updateState: data.updateState ?? "scheduled",
+  };
 }
 
 export async function getEventById(eventId: string): Promise<EventItem | null> {
@@ -70,7 +115,9 @@ export async function getUpcomingEvents(): Promise<EventItem[]> {
     limit(20)
   );
   const snaps = await getDocs(q);
-  return snaps.docs.map((d) => hydrateEvent(d.id, d.data() as Omit<EventItem, "id">));
+  return snaps.docs
+    .map((d) => hydrateEvent(d.id, d.data() as Omit<EventItem, "id">))
+    .filter((event) => event.updateState !== "cancelled");
 }
 
 export async function getPastEvents(): Promise<EventItem[]> {
@@ -110,13 +157,15 @@ export async function getWeeklyMeetups(): Promise<EventItem[]> {
     limit(10)
   );
   const snaps = await getDocs(q);
-  return snaps.docs.map((d) => hydrateEvent(d.id, d.data() as Omit<EventItem, "id">));
+  return snaps.docs
+    .map((d) => hydrateEvent(d.id, d.data() as Omit<EventItem, "id">))
+    .filter((event) => event.updateState !== "cancelled");
 }
 
 export async function getFeaturedEvent(): Promise<EventItem | null> {
   const q = query(collection(db, COL), where("status", "==", "approved"), limit(20));
   const snaps = await getDocs(q);
-  const featured = snaps.docs.find((d) => d.data().isFeatured === true);
+  const featured = snaps.docs.find((d) => d.data().isFeatured === true && d.data().updateState !== "cancelled");
   if (!featured) return null;
   return hydrateEvent(featured.id, featured.data() as Omit<EventItem, "id">);
 }
@@ -131,10 +180,23 @@ export async function proposeEvent(data: EventInput) {
     ...data,
     ...canonical,
     city: data.city ?? null,
+    agenda: data.agenda?.map((item) => item.trim()).filter(Boolean) ?? [],
+    speakers: data.speakers?.filter((speaker) => speaker.name.trim()).map((speaker) => ({
+      name: speaker.name.trim(),
+      role: speaker.role?.trim() || null,
+      organization: speaker.organization?.trim() || null,
+    })) ?? [],
+    priceType: data.priceType ?? "free",
+    priceAmount: data.priceType === "paid" ? data.priceAmount ?? null : null,
+    currency: data.priceType === "paid" ? data.currency ?? "PKR" : null,
+    bookingMode: data.bookingMode ?? "internal-rsvp",
+    bookingUrl: data.bookingMode === "external-booking" ? data.bookingUrl ?? null : null,
+    updateState: data.updateState ?? "scheduled",
     status: "pending",
     isFeatured: false,
     rsvpCount: 0,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 }
 
