@@ -12,6 +12,7 @@
     "seed:ideas": "tsx scripts/seed-idea-resources.ts",
     "seed:faqs": "tsx scripts/seed-faqs.ts",
     "seed:all": "npm run seed:ecosystem && npm run seed:knowledge && npm run seed:ideas && npm run seed:faqs",
+    "migrate:regions": "tsx scripts/migrate-regions.ts",
     "db:clear": "node scripts/clear-db.mjs"
   },
   "dependencies": {
