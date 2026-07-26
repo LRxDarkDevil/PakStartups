@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { arrayRemove, arrayUnion, doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
@@ -83,7 +83,7 @@ function AvatarDisplay({ photoURL, name, className = "w-14 h-14" }: { photoURL?:
 
 type TabType = "Browse Matches" | "My Connections" | "Received Requests" | "Saved Profiles";
 
-export default function MatchPage() {
+function MatchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profile, user: authUser } = useAuth();
@@ -715,5 +715,19 @@ export default function MatchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MatchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#072a1d] text-white">
+          <span className="inline-block w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <MatchContent />
+    </Suspense>
   );
 }
