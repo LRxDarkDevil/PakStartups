@@ -44,6 +44,7 @@ const features = [
     iconBg: "bg-purple-100",
     delay: 0.4,
   },
+  /*
   {
     icon: "storefront",
     title: "B2B Marketplace",
@@ -56,6 +57,7 @@ const features = [
     iconBg: "bg-orange-100",
     delay: 0.6,
   },
+  */
 ];
 
 const community = [
@@ -243,7 +245,7 @@ export default function HomePageClient() {
             </h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => (
               <motion.div
                 key={f.title}
