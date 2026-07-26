@@ -35,11 +35,7 @@ export function TagInput({
   };
 
   const removeTag = (indexToRemove: number) => {
-    const tagToRemove = tags[indexToRemove];
     onChange(tags.filter((_, index) => index !== indexToRemove));
-    if (pinnedTags && onTogglePin && pinnedTags.includes(tagToRemove)) {
-      onTogglePin(tagToRemove);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
