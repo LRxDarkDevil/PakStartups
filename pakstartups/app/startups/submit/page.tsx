@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
 import { createCanonicalLocation, isRegionId, REGIONS } from "@/lib/location";
@@ -28,12 +28,22 @@ type FormData = {
   agreed: boolean;
 };
 
+type ExistingStartup = {
+  id: string;
+  name: string;
+  slug: string;
+  status: "pending" | "approved" | "rejected";
+  category: string;
+  stage: string;
+};
+
 export default function SubmitStartupPage() {
   const { user, profile } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [existingStartups, setExistingStartups] = useState<ExistingStartup[]>([]);
   const [form, setForm] = useState<FormData>({
     name: "", tagline: "", desc: "", category: "", regionId: "", city: "",
     website: "", stage: "", teamSize: "1 (Solo Founder)",
@@ -43,10 +53,21 @@ export default function SubmitStartupPage() {
   const set = (field: keyof FormData, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  // Redirect if not logged in
+  // Check for existing submissions
   useEffect(() => {
-    if (!user && !profile) return;
-  }, [user, profile]);
+    if (!user) return;
+    const fetchExisting = async () => {
+      try {
+        const q = query(collection(db, "startups"), where("ownerId", "==", user.uid));
+        const snap = await getDocs(q);
+        const startups = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExistingStartup);
+        setExistingStartups(startups);
+      } catch (err) {
+        console.error("Error fetching existing user startups:", err);
+      }
+    };
+    fetchExisting();
+  }, [user]);
 
   const validateStep = () => {
     if (step === 0) {
@@ -139,6 +160,68 @@ export default function SubmitStartupPage() {
           <p className="text-[#404943] text-lg">Get discovered by investors, co-founders, and talent.</p>
         </div>
       </section>
+
+      <div className="max-w-3xl mx-auto px-8 pt-8">
+        {/* Existing Submissions Alert Prompt */}
+        {existingStartups.length > 0 && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 mb-8 shadow-md">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-amber-800 text-2xl">info</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h3 className="text-lg font-black text-amber-950">Existing Startup Submission Found</h3>
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-200 text-amber-900 uppercase tracking-wider">
+                    {existingStartups.some((s) => s.status === "pending") ? "Pending Approval" : "Submitted"}
+                  </span>
+                </div>
+                <p className="text-amber-900/90 text-sm mt-1">
+                  You already have {existingStartups.length === 1 ? "a startup submission" : `${existingStartups.length} startup submissions`} registered under your account. You can edit your existing submission at any time until or after it is approved.
+                </p>
+                
+                <div className="mt-4 space-y-3">
+                  {existingStartups.map((s) => (
+                    <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border border-amber-200 rounded-xl p-4 gap-3 shadow-sm">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-[#002112] text-base">{s.name}</span>
+                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                            s.status === "pending" ? "bg-amber-100 text-amber-800 border border-amber-300" :
+                            s.status === "approved" ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
+                            "bg-red-100 text-red-800 border border-red-300"
+                          }`}>
+                            {s.status === "pending" ? "Pending Review" : s.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#707973] mt-0.5">{s.category} · {s.stage}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          href={`/startups/${s.slug}`}
+                          className="px-4 py-2 text-xs font-bold text-[#0f5238] bg-[#d5fde2] hover:bg-[#b4ef9d] rounded-lg transition-all"
+                        >
+                          View
+                        </Link>
+                        <Link
+                          href={`/startups/${s.slug}/edit`}
+                          className="px-4 py-2 text-xs font-bold text-white bg-[#0f5238] hover:bg-[#2d6a4f] rounded-lg transition-all flex items-center gap-1 shadow-sm"
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span> Edit Submission
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-xs text-amber-800/80 italic mt-3">
+                  Want to submit another new startup? You can continue filling out the form below.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Step Progress */}
       <div className="bg-white border-b border-[#e0e0e0] px-8 py-4">

@@ -30,6 +30,7 @@ type Startup = {
   ownerId: string;
   ownerName: string;
   views?: number;
+  status?: "pending" | "approved" | "rejected";
 };
 
 export default function StartupProfilePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -106,6 +107,19 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
   }
 
   const isOwner = user?.uid === startup.ownerId;
+  const isAdmin = profile?.role === "admin";
+
+  // Hide pending startup from non-owner/non-admin
+  if (startup.status === "pending" && !isOwner && !isAdmin) {
+    return (
+      <main className="max-w-3xl mx-auto px-8 py-24 text-center">
+        <span className="material-symbols-outlined text-6xl text-amber-500">pending_actions</span>
+        <h1 className="text-3xl font-black text-[#002112] mt-4 mb-2">Startup Under Review</h1>
+        <p className="text-[#404943] mb-8">This startup submission is currently pending review by PakStartups admins.</p>
+        <Link href="/startups" className="bg-[#0f5238] text-white px-8 py-4 rounded-lg font-bold hover:bg-[#2d6a4f] transition-all">Back to Directory</Link>
+      </main>
+    );
+  }
 
   const handleConnect = async () => {
     if (!user) {
@@ -122,6 +136,26 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
 
   return (
     <main className="max-w-8xl mx-auto px-8 py-8 bg-[#e8ffee] min-h-screen">
+      {/* Pending Banner for Owner */}
+      {startup.status === "pending" && (
+        <div className="mb-8 bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 text-amber-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-amber-700 text-3xl">pending_actions</span>
+            <div>
+              <h3 className="font-bold text-base text-amber-950">Pending Review</h3>
+              <p className="text-amber-900/90 text-sm">
+                Your startup submission is currently pending approval by admins. Only you can view this page. You can edit it anytime.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/startups/${slug}/edit`}
+            className="px-5 py-2.5 bg-amber-700 text-white rounded-lg font-bold text-sm hover:bg-amber-800 transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-sm">edit</span> Edit Submission
+          </Link>
+        </div>
+      )}
       {/* Header */}
       <section className="relative mb-12 overflow-hidden rounded-xl bg-[#d5fde2]">
         <div className="h-48 w-full bg-[#b4ef9d]" />

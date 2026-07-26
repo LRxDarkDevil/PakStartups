@@ -17,7 +17,7 @@ const quickLinks = [
   { label: "Volunteer", icon: "volunteer_activism", href: "/volunteer" },
 ];
 
-type MyStartup = { id: string; name: string; stage: string; city: string; category: string; slug: string };
+type MyStartup = { id: string; name: string; stage: string; city: string; category: string; slug: string; status?: "pending" | "approved" | "rejected" };
 
 export default function DashboardPage() {
   const { user, profile, loading } = useAuth();
@@ -145,20 +145,33 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   myStartups.map((s) => (
-                    <div key={s.id} className="flex items-center gap-4 p-4 bg-[#d5fde2] rounded-xl">
-                      <div className="w-12 h-12 bg-[#b4ef9d] rounded-xl flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[#0f5238]">rocket_launch</span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-[#002112]">{s.name}</h3>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs bg-[#b7f2a0] text-[#1e5111] px-2 py-0.5 rounded-full font-bold uppercase">{s.stage}</span>
-                          <span className="text-xs text-[#404943]">{s.city} · {s.category}</span>
+                    <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#f5faf6] hover:bg-[#d5fde2]/60 rounded-xl border border-[#e0e0e0] transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-[#b4ef9d] rounded-xl flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-[#0f5238]">rocket_launch</span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-bold text-[#002112]">{s.name}</h3>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                              s.status === "pending" ? "bg-amber-100 text-amber-800 border border-amber-300" :
+                              s.status === "approved" ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
+                              "bg-red-100 text-red-800 border border-red-300"
+                            }`}>
+                              {s.status === "pending" ? "Pending Approval" : s.status || "Approved"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs bg-[#b7f2a0] text-[#1e5111] px-2 py-0.5 rounded-full font-bold uppercase">{s.stage}</span>
+                            <span className="text-xs text-[#404943]">{s.city} · {s.category}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Link href={`/startups/${s.slug}`} className="text-[#0f5238] hover:underline font-bold text-sm">View</Link>
-                        <Link href={`/startups/${s.slug}/edit`} className="bg-[#0f5238] text-white px-3 py-1 rounded text-xs font-bold hover:bg-[#2d6a4f]">Edit</Link>
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <Link href={`/startups/${s.slug}`} className="text-[#0f5238] hover:underline font-bold text-sm px-3 py-1.5 rounded bg-white border border-[#e0e0e0]">View</Link>
+                        <Link href={`/startups/${s.slug}/edit`} className="bg-[#0f5238] text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-[#2d6a4f] flex items-center gap-1 shadow-sm">
+                          <span className="material-symbols-outlined text-xs">edit</span> Edit
+                        </Link>
                       </div>
                     </div>
                   ))
