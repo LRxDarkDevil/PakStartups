@@ -12,7 +12,7 @@ const navLinks = [
   { label: "Startup Directory", href: "/startups" },
   { label: "Find Co-Founder", href: "/match" },
   { label: "Ecosystem", href: "/ecosystem" },
-  { label: "B2B Deals & Perks", href: "/b2b" },
+  // { label: "B2B Deals & Perks", href: "/b2b" },
   { label: "Knowledge Hub", href: "/knowledge" },
   { label: "Events", href: "/events" },
 ];
