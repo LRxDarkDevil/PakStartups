@@ -35,7 +35,7 @@ service cloud.firestore {
         && data.countryCode == 'PK'
         && validRegionId(data.regionId)
         && validString(data.region, 2, 80)
-        && (!('city' in data) || data.city == null || validString(data.city, 1, 120));
+        && (!('city' in data) || data.city == null || data.city == '' || validString(data.city, 1, 120));
     }
     function locationAbsentOrValid(data) {
       return !data.keys().hasAny(['country', 'countryCode', 'regionId', 'region', 'city'])
@@ -52,10 +52,10 @@ service cloud.firestore {
         && (!('announcementEndTs' in data) || data.announcementEndTs == null)
         && (!('announcementPriority' in data) || data.announcementPriority == 0);
     }
-    // Restrict self-assigned roles to the safe allowlist; only admin can set 'admin'
+    // Restrict self-assigned roles to non-admin roles; only admin can set 'admin'
     function roleNotEscalated() {
       return !('role' in request.resource.data) ||
-             request.resource.data.role in ['user', 'founder'];
+             (request.resource.data.role != 'admin' && request.resource.data.role is string);
     }
     // Prevent owners from self-approving moderation status — admin-only field
     function statusUnchanged() {

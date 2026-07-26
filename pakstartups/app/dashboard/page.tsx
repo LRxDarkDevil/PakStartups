@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import { query, collection, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { getAcceptedConnections } from "@/lib/services/match";
 
 const quickLinks = [
   { label: "Edit Profile", icon: "edit", href: "/settings" },
@@ -40,12 +41,12 @@ export default function DashboardPage() {
       getDocs(query(collection(db, "startups"), where("ownerId", "==", user.uid), limit(5))),
       // My ideas
       getDocs(query(collection(db, "ideas"), where("ownerId", "==", user.uid))),
-      // My outgoing connections
-      getDocs(query(collection(db, "connections"), where("fromUid", "==", user.uid), where("status", "==", "accepted"))),
-    ]).then(([startupsSnap, ideasSnap, conSnap]) => {
+      // My accepted connections (both directions)
+      getAcceptedConnections(user.uid),
+    ]).then(([startupsSnap, ideasSnap, acceptedConns]) => {
       setMyStartups(startupsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as MyStartup));
       setMyIdeas(ideasSnap.size);
-      setConnections(conSnap.size);
+      setConnections(acceptedConns.length);
     }).catch(console.error).finally(() => setLoadingStats(false));
   }, [user]);
 
@@ -72,10 +73,10 @@ export default function DashboardPage() {
   const completeness = Math.round((checks.filter((c) => c.ok).length / checks.length) * 100);
 
   const dashboardStats = [
-    { label: "Profile Views", value: String(profile.views ?? 42), icon: "visibility", change: "" },
-    { label: "Connections", value: String(connections), icon: "group", change: "" },
-    { label: "Ideas Submitted", value: String(myIdeas), icon: "lightbulb", change: "" },
-    { label: "Startups Listed", value: String(myStartups.length), icon: "rocket_launch", change: "" },
+    { label: "Profile Views", value: String(profile.views ?? 42), icon: "visibility", href: "/settings" },
+    { label: "Connections", value: String(connections), icon: "group", href: "/match?tab=My+Requests" },
+    { label: "Ideas Submitted", value: String(myIdeas), icon: "lightbulb", href: "/ideas" },
+    { label: "Startups Listed", value: String(myStartups.length), icon: "rocket_launch", href: "/startups" },
   ];
 
   return (
@@ -108,16 +109,15 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
           {dashboardStats.map((s) => (
-            <div key={s.label} className="bg-white rounded-xl p-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)]">
+            <Link key={s.label} href={s.href} className="bg-white rounded-xl p-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)] hover:border hover:border-[#0f5238]/30 transition-all group cursor-pointer">
               <div className="flex items-center justify-between mb-3">
-                <span className="material-symbols-outlined text-[#0f5238] text-2xl">{s.icon}</span>
+                <span className="material-symbols-outlined text-[#0f5238] text-2xl group-hover:scale-110 transition-transform">{s.icon}</span>
                 <span className="text-3xl font-black text-[#002112]">
                   {loadingStats ? <span className="inline-block w-6 h-6 rounded bg-[#e0e0e0] animate-pulse" /> : s.value}
                 </span>
               </div>
               <p className="text-[#404943] text-sm font-medium">{s.label}</p>
-              {s.change && <p className="text-[#0f5238] text-xs font-bold mt-1">{s.change}</p>}
-            </div>
+            </Link>
           ))}
         </div>
 

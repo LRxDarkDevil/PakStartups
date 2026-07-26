@@ -21,7 +21,8 @@ export type MatchProfile = {
   regionId?: RegionId;
   region?: string;
   role: "Founder" | "Tech Lead" | "Student" | "Freelancer" | "Mentor";
-  looking: string;
+  looking?: string;
+  photoURL?: string;
   skills: string[];
   openToConnect: boolean;
   createdAt?: unknown;
@@ -34,6 +35,7 @@ export type ConnectionRequest = {
   toUid: string;
   toName: string;
   status: "pending" | "accepted" | "declined";
+  note?: string;
   createdAt?: unknown;
 };
 
@@ -73,19 +75,92 @@ export async function getMatchProfiles(role?: string, locationFilter?: string): 
 }
 
 export async function getMatchProfilesByIds(ids: string[]): Promise<MatchProfile[]> {
-  if (ids.length === 0) return [];
-  const snaps = await getDocs(query(collection(db, PROFILES_COL), where("uid", "in", ids.slice(0, 10))));
-  return snaps.docs.map((d) => hydrateMatchProfile(d.id, d.data() as Omit<MatchProfile, "id">));
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) return [];
+  
+  const results: MatchProfile[] = [];
+  const chunkSize = 10;
+
+  for (let i = 0; i < uniqueIds.length; i += chunkSize) {
+    const chunk = uniqueIds.slice(i, i + chunkSize);
+    const snaps = await getDocs(query(collection(db, PROFILES_COL), where("uid", "in", chunk)));
+    const foundUids = new Set<string>();
+
+    snaps.docs.forEach((d) => {
+      const data = d.data() as Omit<MatchProfile, "id">;
+      foundUids.add(data.uid);
+      results.push(hydrateMatchProfile(d.id, data));
+    });
+
+    const missingUids = chunk.filter((id) => !foundUids.has(id));
+    for (const uid of missingUids) {
+      try {
+        const uSnap = await getDoc(doc(db, "users", uid));
+        if (uSnap.exists()) {
+          const uData = uSnap.data();
+          results.push(
+            hydrateMatchProfile(uSnap.id, {
+              uid: uSnap.id,
+              name: uData.fullName || uData.displayName || "Member",
+              city: uData.city || "Pakistan",
+              role: (uData.role as MatchProfile["role"]) || "Founder",
+              looking: uData.looking || "",
+              photoURL: uData.photoURL || undefined,
+              skills: uData.skills || [],
+              openToConnect: true,
+            })
+          );
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch fallback user profile for ${uid}`, err);
+      }
+    }
+  }
+
+  return results;
+}
+
+export async function getAcceptedConnections(uid: string): Promise<ConnectionRequest[]> {
+  const qFrom = query(
+    collection(db, CONNECTIONS_COL),
+    where("fromUid", "==", uid),
+    where("status", "==", "accepted")
+  );
+  const qTo = query(
+    collection(db, CONNECTIONS_COL),
+    where("toUid", "==", uid),
+    where("status", "==", "accepted")
+  );
+  const [snapFrom, snapTo] = await Promise.all([getDocs(qFrom), getDocs(qTo)]);
+  const list = [
+    ...snapFrom.docs.map((d) => ({ id: d.id, ...d.data() }) as ConnectionRequest),
+    ...snapTo.docs.map((d) => ({ id: d.id, ...d.data() }) as ConnectionRequest),
+  ];
+  const map = new Map<string, ConnectionRequest>();
+  list.forEach((item) => { if (item.id) map.set(item.id, item); });
+  return Array.from(map.values());
 }
 
 export async function getMyConnections(uid: string): Promise<ConnectionRequest[]> {
-  const q = query(
+  const qFrom = query(
     collection(db, CONNECTIONS_COL),
     where("fromUid", "==", uid),
     orderBy("createdAt", "desc")
   );
-  const snaps = await getDocs(q);
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as ConnectionRequest);
+  const qToAccepted = query(
+    collection(db, CONNECTIONS_COL),
+    where("toUid", "==", uid),
+    where("status", "==", "accepted"),
+    orderBy("createdAt", "desc")
+  );
+  const [snapFrom, snapTo] = await Promise.all([getDocs(qFrom), getDocs(qToAccepted)]);
+  const list = [
+    ...snapFrom.docs.map((d) => ({ id: d.id, ...d.data() }) as ConnectionRequest),
+    ...snapTo.docs.map((d) => ({ id: d.id, ...d.data() }) as ConnectionRequest),
+  ];
+  const map = new Map<string, ConnectionRequest>();
+  list.forEach((item) => { if (item.id) map.set(item.id, item); });
+  return Array.from(map.values());
 }
 
 export async function getReceivedRequests(uid: string): Promise<ConnectionRequest[]> {
@@ -110,23 +185,105 @@ export async function checkConnectionExists(fromUid: string, toUid: string): Pro
   return !snap.empty;
 }
 
-export async function sendConnectionRequest(from: { uid: string; name: string }, to: { uid: string; name: string }) {
+export async function getConnectionRequest(fromUid: string, toUid: string): Promise<ConnectionRequest | null> {
+  const q = query(
+    collection(db, CONNECTIONS_COL),
+    where("fromUid", "==", fromUid),
+    where("toUid", "==", toUid),
+    limit(1)
+  );
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    return { id: snap.docs[0].id, ...snap.docs[0].data() } as ConnectionRequest;
+  }
+  const qRev = query(
+    collection(db, CONNECTIONS_COL),
+    where("fromUid", "==", toUid),
+    where("toUid", "==", fromUid),
+    limit(1)
+  );
+  const snapRev = await getDocs(qRev);
+  if (!snapRev.empty) {
+    return { id: snapRev.docs[0].id, ...snapRev.docs[0].data() } as ConnectionRequest;
+  }
+  return null;
+}
+
+export async function sendConnectionRequest(
+  from: { uid: string; name: string },
+  to: { uid: string; name: string },
+  note?: string
+) {
+  if (from.uid === to.uid) return null;
   const exists = await checkConnectionExists(from.uid, to.uid);
   if (exists) return null;
-  return addDoc(collection(db, CONNECTIONS_COL), {
+
+  const payload: Record<string, unknown> = {
     fromUid: from.uid,
     fromName: from.name,
     toUid: to.uid,
     toName: to.name,
     status: "pending",
     createdAt: serverTimestamp(),
-  });
+  };
+
+  if (note && note.trim()) {
+    payload.note = note.trim();
+  }
+
+  const connDoc = await addDoc(collection(db, CONNECTIONS_COL), payload);
+
+  // Automatically create notification for the recipient
+  try {
+    const noteText = note && note.trim() ? `: "${note.trim()}"` : ".";
+    await addDoc(collection(db, "notifications"), {
+      fromUid: from.uid,
+      toUid: to.uid,
+      type: "connection",
+      text: `${from.name} sent you a connection request${noteText}`,
+      link: "/match?tab=Received+Requests",
+      read: false,
+      createdAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn("Failed to create connection notification", err);
+  }
+
+  return connDoc;
 }
 
-export async function updateConnectionStatus(connId: string, status: "accepted" | "declined") {
-  await import("firebase/firestore").then(({ updateDoc }) =>
-    updateDoc(doc(db, CONNECTIONS_COL, connId), { status, updatedAt: serverTimestamp() })
-  );
+export async function updateConnectionStatus(
+  connId: string,
+  status: "accepted" | "declined",
+  actor?: { uid: string; name: string }
+) {
+  const { updateDoc } = await import("firebase/firestore");
+  const connRef = doc(db, CONNECTIONS_COL, connId);
+  const connSnap = await getDoc(connRef);
+
+  await updateDoc(connRef, { status, updatedAt: serverTimestamp() });
+
+  if (connSnap.exists() && actor) {
+    const connData = connSnap.data() as ConnectionRequest;
+    const recipientUid = connData.fromUid === actor.uid ? connData.toUid : connData.fromUid;
+    try {
+      await addDoc(collection(db, "notifications"), {
+        fromUid: actor.uid,
+        toUid: recipientUid,
+        type: "connection",
+        text: `${actor.name} ${status} your connection request.`,
+        link: "/match",
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn("Failed to create status update notification", err);
+    }
+  }
+}
+
+export async function cancelConnectionRequest(connId: string) {
+  return deleteDoc(doc(db, CONNECTIONS_COL, connId));
 }
 
 export async function upsertMatchProfile(uid: string, data: MatchProfileInput) {

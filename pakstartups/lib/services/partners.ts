@@ -25,42 +25,15 @@ export type StrategicPartner = {
 
 const COL = "strategic_partners";
 
-const MOCK_PARTNERS: StrategicPartner[] = [
-  {
-    id: "p1",
-    name: "AWS for Startups",
-    logo: "/images/image-004.jpg",
-    tier: "Infrastructure Partner",
-    description: "Cloud credit grants, technical architecture support, and incubation perks for Pakistani founders.",
-    website: "https://aws.amazon.com/startups/",
-    isSponsored: true,
-    disclosureText: "Official Infrastructure Partner",
-    status: "active",
-    placements: ["homepage", "about", "ecosystem"],
-  },
-  {
-    id: "p2",
-    name: "NIC Pakistan",
-    logo: "/images/image-045.jpg",
-    tier: "Headline Partner",
-    description: "National Incubation Center network accelerating pre-seed and seed stage startups nationwide.",
-    website: "https://nicpakistan.pk",
-    isSponsored: false,
-    disclosureText: "Ecosystem Innovation Partner",
-    status: "active",
-    placements: ["homepage", "about"],
-  },
-];
-
 export async function getStrategicPartners(): Promise<StrategicPartner[]> {
   try {
     const q = query(collection(db, COL), where("status", "==", "active"), limit(50));
     const snaps = await getDocs(q);
-    if (snaps.empty) return MOCK_PARTNERS;
+    if (snaps.empty) return [];
     return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as StrategicPartner);
   } catch (err) {
-    console.warn("Failed to fetch partners from Firestore, returning defaults", err);
-    return MOCK_PARTNERS;
+    console.warn("Failed to fetch partners from Firestore", err);
+    return [];
   }
 }
 

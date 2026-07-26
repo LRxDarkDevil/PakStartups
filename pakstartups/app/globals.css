@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @theme {
-  --font-family-headline: "Plus Jakarta Sans", sans-serif;
+  --font-family-headline: "Instrument Serif", Georgia, serif;
+  --font-family-display: "Instrument Serif", Georgia, serif;
   --font-family-body: "Plus Jakarta Sans", sans-serif;
   --font-family-label: "Plus Jakarta Sans", sans-serif;
   --font-family-sans: "Plus Jakarta Sans", sans-serif;
@@ -8,12 +9,22 @@
 
 :root {
   --color-primary: #0f5238;
+  --color-primary-dark: #072a1d;
   --color-primary-container: #2d6a4f;
-  --color-surface: #e8ffee;
+  --color-surface: #f4faf6;
   --color-surface-container-low: #d5fde2;
   --color-surface-container: #cff7dd;
   --color-on-surface: #002112;
   --color-on-primary: #ffffff;
+}
+
+.font-display {
+  font-family: "Instrument Serif", Georgia, serif;
+}
+
+.font-bricolage {
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  font-style: normal;
 }
 
 * {

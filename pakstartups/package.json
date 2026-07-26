@@ -25,6 +25,7 @@
     "@sanity/vision": "^5.22.0",
     "axios": "^1.15.0",
     "cheerio": "^1.2.0",
+    "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
     "firebase": "^12.12.0",
     "framer-motion": "^12.40.0",

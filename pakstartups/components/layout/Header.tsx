@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { logout } from "@/lib/firebase/auth";
 import EventAnnouncementBar from "./EventAnnouncementBar";
+import NotificationMenu from "./NotificationMenu";
 
 const navLinks = [
   { label: "Startup Directory", href: "/startups" },
@@ -40,6 +41,13 @@ export default function Header() {
     setDropdownOpen(false);
     router.push("/");
   };
+
+  const avatarUrl = profile?.photoURL || user?.photoURL;
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
 
   const displayName = profile?.fullName || user?.displayName || user?.email || "Account";
   const initials = displayName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -76,18 +84,26 @@ export default function Header() {
           })}
         </div>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
           {loading ? (
             <div className="w-9 h-9 rounded-full bg-[#d5fde2] animate-pulse" />
           ) : user ? (
-            <div className="relative" ref={dropdownRef}>
+            <>
+              <NotificationMenu />
+              <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#d5fde2] transition-all"
               >
-                {profile?.photoURL ? (
+                {avatarUrl && !imgError ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.photoURL} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar"
+                    referrerPolicy="no-referrer"
+                    onError={() => setImgError(true)}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-[#0f5238] text-white text-xs font-black flex items-center justify-center">
                     {initials}
@@ -133,6 +149,7 @@ export default function Header() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             <>
               <Link href="/auth/login" className="px-5 py-2 text-[#2d6a4f] hover:bg-[#d5fde2] rounded-lg transition-all duration-300 active:scale-95">

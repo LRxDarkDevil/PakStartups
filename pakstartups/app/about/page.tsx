@@ -1,70 +1,68 @@
-import Link from "next/link";
-import Image from "next/image";
+"use client";
 
-export const metadata = {
-  title: "About Us | PakStartups",
-  description:
-    "Learn about the mission, vision, and team behind PakStartups — Pakistan's definitive platform for entrepreneurs.",
-};
+import Link from "next/link";
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-[#e8ffee] font-['Plus_Jakarta_Sans'] text-[#002112]">
+    <div className="min-h-screen bg-[#f4faf6] text-[#002112]">
       {/* Hero Section */}
-      <section className="relative px-8 pt-32 pb-24 overflow-hidden border-b border-[#c4ecd2]">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#d5fde2] rounded-full blur-[100px] -z-10 opacity-70 pointer-events-none transform translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#b1f0ce] rounded-full blur-[100px] -z-10 opacity-50 pointer-events-none transform -translate-x-1/3 translate-y-1/3"></div>
-
+      <section className="relative px-6 lg:px-8 pt-24 pb-20 overflow-hidden bg-[#e4f9eb] border-b border-[#0f5238]/15">
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d5fde2] text-[#0f5238] rounded-full text-xs font-bold uppercase tracking-widest mb-6">
-            <span className="material-symbols-outlined text-sm">visibility</span>
-            Our Story
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black text-[#002112] tracking-tighter mb-6 leading-[1.1]">
-            Catalyzing Pakistan's <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0f5238] to-[#2d6a4f]">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black font-display text-[#002112] tracking-tight mb-6 leading-[1.08]">
+            Catalyzing Pakistan&apos;s <br className="hidden md:block" />
+            <span className="italic text-[#0f5238] underline decoration-emerald-300 decoration-wavy decoration-2">
               Innovation Era.
             </span>
           </h1>
-          <p className="text-lg md:text-xl text-[#2d6a4f] max-w-2xl mx-auto font-medium leading-relaxed mb-10">
+          <p className="text-lg md:text-xl text-[#304237] max-w-2xl mx-auto font-medium leading-relaxed mb-10">
             We are building the definitive digital infrastructure to connect, empower,
-            and scale the next generation of Pakistani entrepreneurs and startups.
+            and scale the next generation of Pakistani entrepreneurs and tech startups.
           </p>
         </div>
       </section>
 
-      {/* Mission & Vision */}
-      <section className="py-24 px-8 bg-white selection:bg-[#b1f0ce]">
+      {/* Mission & Vision Section */}
+      <section className="py-24 px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-            <div className="order-2 md:order-1 relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-[#e8ffee] to-[#d5fde2] rounded-[40px] transform -rotate-3 scale-105 -z-10"></div>
-              <div className="bg-[#0f5238] rounded-[40px] p-8 md:p-12 text-white shadow-2xl relative overflow-hidden aspect-square flex flex-col justify-center">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-[40px] transform translate-x-1/2 -translate-y-1/2"></div>
-                
-                <span className="material-symbols-outlined text-7xl text-[#b1f0ce] mb-8" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  public
-                </span>
-                <h3 className="text-3xl font-extrabold mb-4">Our Vision</h3>
-                <p className="text-[#e8ffee] text-lg font-medium leading-relaxed opacity-90">
-                  To position Pakistan as a leading hub of tech innovation by breaking
-                  down barriers to knowledge, funding, and talent for every founder—no
-                  matter where they start.
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="relative">
+              <div className="bg-[#072a1d] text-white rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col justify-center border border-emerald-800">
+                <div className="flex items-center justify-between mb-8">
+                  <span className="material-symbols-outlined text-6xl text-emerald-400">
+                    public
+                  </span>
+                </div>
+                <h3 className="text-3xl font-black font-display text-white mb-4">
+                  Global Hub for Tech Innovation
+                </h3>
+                <p className="text-emerald-100/90 text-base font-normal leading-relaxed">
+                  To position Pakistan as a leading regional hub of technology innovation by breaking down barriers to knowledge, funding, and talent for every founder—no matter where they start.
                 </p>
               </div>
             </div>
-            
-            <div className="order-1 md:order-2 space-y-8">
+
+            <div className="space-y-8">
               <div>
-                <h2 className="text-4xl font-extrabold text-[#002112] tracking-tight mb-4">The Problem We Are Solving</h2>
-                <p className="text-[#404943] text-lg leading-relaxed">
-                  Too many brilliant ideas die in isolation. Pakistan has an incredibly young, energetic, and tech-savvy population, yet founders often struggle with fragmented networks, opaque data, and missing early-stage support structures.
+                <span className="text-xs font-black uppercase tracking-widest text-[#0f5238] mb-2 block">
+                  The Problem
+                </span>
+                <h2 className="text-3xl font-bold font-display text-[#002112] mb-3">
+                  Bridging the Ecosystem Gap
+                </h2>
+                <p className="text-[#404943] text-base leading-relaxed font-normal">
+                  Too many brilliant ideas die in isolation. Pakistan has a remarkably young and energetic population, yet founders often navigate fragmented networks, opaque market data, and missing early-stage support structures.
                 </p>
               </div>
+
               <div>
-                <h2 className="text-4xl font-extrabold text-[#002112] tracking-tight mb-4">Our Mission</h2>
-                <p className="text-[#404943] text-lg leading-relaxed">
-                  PakStartups acts as the operating system for the ecosystem. We unify the community by providing open access to a comprehensive startup directory, co-founder matchmaking, B2B procurement, and free educational resources.
+                <span className="text-xs font-black uppercase tracking-widest text-[#0f5238] mb-2 block">
+                  The Solution
+                </span>
+                <h2 className="text-3xl font-bold font-display text-[#002112] mb-3">
+                  Operating System for Builders
+                </h2>
+                <p className="text-[#404943] text-base leading-relaxed font-normal">
+                  PakStartups acts as the operating system for the tech ecosystem. We unify the community through a verified startup directory, co-founder matchmaking, and free educational and legal resources.
                 </p>
               </div>
             </div>
@@ -72,135 +70,127 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* The Team / Who We Are */}
-      <section className="py-24 px-8 bg-[#f5faf6]">
+      {/* Leadership & People */}
+      <section className="py-24 px-6 lg:px-8 bg-[#f4faf6] border-t border-[#0f5238]/10">
         <div className="max-w-6xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d5fde2] text-[#0f5238] rounded-full text-xs font-bold uppercase tracking-widest mb-6">
-            <span className="material-symbols-outlined text-sm">group</span>
-            The People
-          </div>
-          <h2 className="text-4xl md:text-5xl font-black text-[#002112] tracking-tight mb-6">
-            Built by Founders, <br /> for Founders.
+          <h2 className="text-4xl md:text-5xl font-black font-display text-[#002112] tracking-tight mb-4">
+            Built by Founders, for Founders.
           </h2>
-          <p className="text-lg text-[#404943] max-w-3xl mx-auto font-medium leading-relaxed mb-16">
-            PakStartups is managed by a diverse team of operators, developers, and tech enthusiasts who have built, scaled, and navigated the complexities of the Pakistani market firsthand.
+          <p className="text-base sm:text-lg text-[#404943] max-w-3xl mx-auto font-medium leading-relaxed mb-16">
+            Managed by a dedicated team of engineers, operators, and ecosystem builders who have navigated the Pakistani market firsthand.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {/* Leadership 1 */}
-            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-xl transition-shadow flex flex-col items-center text-center border border-[#e8f5ee]">
-              <div className="w-24 h-24 rounded-full mb-4 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center text-[#0f5238] font-black text-2xl">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+            <div className="bg-white rounded-3xl p-6 border border-[#0f5238]/15 shadow-xs flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-2xl mb-4 bg-[#0f5238] text-white flex items-center justify-center font-black text-2xl font-display shadow-md">
                 MT
               </div>
-              <h3 className="font-extrabold text-[#002112] text-xl">Muhammad Taha</h3>
-              <p className="text-[#0f5238] font-bold text-sm mb-3">Technical Lead & Architect</p>
-              <p className="text-[#707973] text-sm leading-relaxed mb-5">
-                Leading software architecture, platform engineering, and technical roadmap delivery across PakStartups.
+              <h3 className="font-bold text-[#002112] text-lg font-display">Muhammad Taha</h3>
+              <p className="text-[#0f5238] font-bold text-xs mb-3">Technical Lead &amp; Architect</p>
+              <p className="text-[#606d64] text-xs leading-relaxed">
+                Directing platform engineering, database architecture, and technical roadmap delivery across PakStartups.
               </p>
             </div>
 
-            {/* Leadership 2 */}
-            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-xl transition-shadow flex flex-col items-center text-center border border-[#e8f5ee]">
-              <div className="w-24 h-24 rounded-full mb-4 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center text-[#0f5238] font-black text-2xl">
-                SL
+            <div className="bg-white rounded-3xl p-6 border border-[#0f5238]/15 shadow-xs flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-2xl mb-4 bg-[#0f5238] text-white flex items-center justify-center font-black text-2xl font-display shadow-md">
+                AL
               </div>
-              <h3 className="font-extrabold text-[#002112] text-xl">Administration Lead</h3>
-              <p className="text-[#0f5238] font-bold text-sm mb-3">Community & Operations Lead</p>
-              <p className="text-[#707973] text-sm leading-relaxed mb-5">
+              <h3 className="font-bold text-[#002112] text-lg font-display">Administration Lead</h3>
+              <p className="text-[#0f5238] font-bold text-xs mb-3">Community &amp; Operations Lead</p>
+              <p className="text-[#606d64] text-xs leading-relaxed">
                 Directing strategic ecosystem partnerships, community operations, and founder support workflows.
               </p>
             </div>
 
-            {/* Leadership 3 */}
-            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-xl transition-shadow flex flex-col items-center text-center border border-[#e8f5ee]">
-              <div className="w-24 h-24 rounded-full mb-4 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center text-[#0f5238] font-black text-2xl">
+            <div className="bg-white rounded-3xl p-6 border border-[#0f5238]/15 shadow-xs flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-2xl mb-4 bg-[#0f5238] text-white flex items-center justify-center font-black text-2xl font-display shadow-md">
                 J
               </div>
-              <h3 className="font-extrabold text-[#002112] text-xl">Javad</h3>
-              <p className="text-[#0f5238] font-bold text-sm mb-3">Growth & Ecosystem Advisor</p>
-              <p className="text-[#707973] text-sm leading-relaxed mb-5">
+              <h3 className="font-bold text-[#002112] text-lg font-display">Javad</h3>
+              <p className="text-[#0f5238] font-bold text-xs mb-3">Growth &amp; Ecosystem Advisor</p>
+              <p className="text-[#606d64] text-xs leading-relaxed">
                 Guiding ecosystem expansion, investor relations, and strategic growth initiatives for local startups.
               </p>
             </div>
           </div>
 
-          {/* Separate Volunteer & Contributor Banner */}
-          <div className="bg-[#d5fde2] border border-[#a8e7c5] rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
+          {/* Volunteer Roster Callout */}
+          <div className="bg-white border-2 border-[#0f5238]/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 text-left shadow-xs">
             <div>
-              <h3 className="text-2xl font-black text-[#002112] mb-2">Volunteers & Open Source Mentors</h3>
-              <p className="text-[#404943] text-sm max-w-xl">
-                Our active network includes dozens of community volunteers, skill mentors, and open-source contributors supporting founders across Pakistan.
+              <h3 className="text-xl font-bold font-display text-[#002112] mb-1">
+                Volunteers &amp; Open Source Mentors
+              </h3>
+              <p className="text-[#404943] text-xs leading-relaxed max-w-xl">
+                Our network includes community volunteers, technical mentors, and open-source contributors supporting founders nationwide.
               </p>
             </div>
             <Link
               href="/volunteer"
-              className="bg-[#0f5238] hover:bg-[#2d6a4f] text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shrink-0"
+              className="bg-[#0f5238] hover:bg-[#072a1d] text-white px-6 py-3 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer shadow-md"
             >
-              Explore Volunteer Roster & Apply →
+              Explore Volunteer Roster &amp; Apply →
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Trust & Transparency */}
-      <section className="py-24 px-8 bg-white border-t border-[#c4ecd2]">
+      {/* Core Values */}
+      <section className="py-24 px-6 lg:px-8 bg-white border-t border-[#0f5238]/10">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-12 items-center bg-[#f5faf6] p-10 md:p-12 rounded-[40px]">
+          <div className="flex flex-col md:flex-row gap-10 items-start bg-[#f4faf6] p-8 md:p-12 rounded-3xl border border-[#0f5238]/15">
             <div className="w-full md:w-1/3">
-              <h2 className="text-3xl font-extrabold text-[#002112] tracking-tight mb-4">Our Core Values</h2>
-              <p className="text-[#404943] leading-relaxed">
-                What drives our decisions and shapes our platform architecture on a daily basis.
+              <span className="text-xs font-black uppercase tracking-widest text-[#0f5238] mb-2 block">
+                Guiding Principles
+              </span>
+              <h2 className="text-3xl font-black font-display text-[#002112] mb-3">
+                Our Core Values
+              </h2>
+              <p className="text-[#404943] text-xs leading-relaxed">
+                The non-negotiable principles that drive our software design and community decisions.
               </p>
             </div>
-            <div className="w-full md:w-2/3 flex flex-col gap-6">
+            <div className="w-full md:w-2/3 space-y-6">
               <div className="flex gap-4">
-                <span className="material-symbols-outlined text-[#0f5238] text-3xl shrink-0">volunteer_activism</span>
+                <span className="material-symbols-outlined text-[#0f5238] text-2xl shrink-0">
+                  volunteer_activism
+                </span>
                 <div>
-                  <h4 className="font-bold text-[#002112] text-lg mb-1">Collaboration Over Competition</h4>
-                  <p className="text-[#404943] text-sm">We believe the market is big enough for everyone. Our platform aims to multiply opportunities rather than divide them.</p>
+                  <h4 className="font-bold text-[#002112] text-base mb-1 font-display">
+                    Collaboration Over Competition
+                  </h4>
+                  <p className="text-[#404943] text-xs leading-relaxed">
+                    The Pakistani market presents immense growth potential. We aim to multiply opportunities for all founders rather than divide them.
+                  </p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <span className="material-symbols-outlined text-[#0f5238] text-3xl shrink-0">lock_open</span>
+                <span className="material-symbols-outlined text-[#0f5238] text-2xl shrink-0">
+                  lock_open
+                </span>
                 <div>
-                  <h4 className="font-bold text-[#002112] text-lg mb-1">Open Access</h4>
-                  <p className="text-[#404943] text-sm">Data that helps the ecosystem flourish shouldn't be hidden behind expensive paywalls. We democratize access to essential data.</p>
+                  <h4 className="font-bold text-[#002112] text-base mb-1 font-display">
+                    Democratized Access
+                  </h4>
+                  <p className="text-[#404943] text-xs leading-relaxed">
+                    Data and legal tools essential to startup creation should never be hidden behind expensive paywalls.
+                  </p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <span className="material-symbols-outlined text-[#0f5238] text-3xl shrink-0">verified</span>
+                <span className="material-symbols-outlined text-[#0f5238] text-2xl shrink-0">
+                  verified
+                </span>
                 <div>
-                  <h4 className="font-bold text-[#002112] text-lg mb-1">Uncompromising Trust</h4>
-                  <p className="text-[#404943] text-sm">Transparency is our default. We protect your data rigidly and moderate the community strictly to ensure high quality interactions.</p>
+                  <h4 className="font-bold text-[#002112] text-base mb-1 font-display">
+                    Uncompromising Data Integrity
+                  </h4>
+                  <p className="text-[#404943] text-xs leading-relaxed">
+                    We maintain strict verification standards across our startup registry to deliver trustworthy intelligence to investors and partners.
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-24 px-8 bg-[#e8ffee]">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-extrabold text-[#002112] tracking-tight mb-6">
-            Ready to shape the future?
-          </h2>
-          <p className="text-[#404943] text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
-            Whether you&apos;re validating an idea or raising your Series A, the whole ecosystem is here to support you. Join us today.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link
-              href="/auth/signup"
-              className="px-8 py-4 bg-[#0f5238] text-white font-extrabold rounded-xl shadow-[0_8px_24px_rgba(15,82,56,0.2)] hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(15,82,56,0.3)] transition-all active:scale-95"
-            >
-              Create Free Account
-            </Link>
-            <Link
-              href="/startups"
-              className="px-8 py-4 border-2 border-[#bfc9c1] text-[#0f5238] font-bold rounded-xl hover:border-[#0f5238] hover:bg-white transition-all active:scale-95"
-            >
-              Explore Directory
-            </Link>
           </div>
         </div>
       </section>

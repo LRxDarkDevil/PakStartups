@@ -5,6 +5,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
 import Link from "next/link";
+import { sendConnectionRequest, getConnectionRequest } from "@/lib/services/match";
+import { useRouter } from "next/navigation";
 
 type Profile = {
   uid: string;
@@ -27,25 +29,56 @@ function formatJoin(ts: Profile["createdAt"]) {
 
 export default function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
-  const { user: currentUser } = useAuth();
+  const router = useRouter();
+  const { user: currentUser, profile: currentProfile } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState("Overview");
+  const [connectionStatus, setConnectionStatus] = useState<"none" | "pending" | "accepted" | "declined">("none");
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      // username is actually the uid in our routing
       const snap = await getDoc(doc(db, "users", username));
       if (snap.exists()) {
-        setProfile({ uid: snap.id, ...snap.data() } as Profile);
+        const fetched = { uid: snap.id, ...snap.data() } as Profile;
+        setProfile(fetched);
+
+        if (currentUser && currentUser.uid !== fetched.uid) {
+          const req = await getConnectionRequest(currentUser.uid, fetched.uid);
+          if (req) {
+            setConnectionStatus(req.status);
+          }
+        }
       } else {
         setNotFound(true);
       }
       setLoading(false);
     };
     fetchProfile();
-  }, [username]);
+  }, [username, currentUser]);
+
+  const handleConnect = async () => {
+    if (!currentUser) {
+      router.push(`/auth/signup?next=/profile/${username}`);
+      return;
+    }
+    if (!profile?.uid) return;
+    setConnecting(true);
+    try {
+      const senderName = currentProfile?.fullName || currentUser.displayName || currentUser.email || "User";
+      await sendConnectionRequest(
+        { uid: currentUser.uid, name: senderName },
+        { uid: profile.uid, name: profile.fullName || "Member" }
+      );
+      setConnectionStatus("pending");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setConnecting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -91,7 +124,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                 <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white bg-[#b4ef9d] overflow-hidden shadow-xl flex items-center justify-center">
                   {profile.photoURL
                     // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={profile.photoURL} alt={profile.fullName} className="w-full h-full object-cover" />
+                    ? <img src={profile.photoURL} alt={profile.fullName} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                     : <span className="text-4xl font-black text-[#0f5238]">{initials}</span>
                   }
                 </div>
@@ -121,12 +154,32 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                 </Link>
               ) : (
                 <>
-                  <button className="bg-[#bfc9c1]/20 hover:bg-[#bfc9c1]/40 text-[#002112] font-bold px-6 py-2.5 rounded-lg text-sm transition-all">
+                  <button className="bg-[#bfc9c1]/20 hover:bg-[#bfc9c1]/40 text-[#002112] font-bold px-6 py-2.5 rounded-lg text-sm transition-all cursor-pointer">
                     Message
                   </button>
-                  <Link href="/match" className="bg-gradient-to-br from-[#0f5238] to-[#2d6a4f] text-white font-bold px-8 py-2.5 rounded-lg text-sm shadow-xl transition-all active:scale-95 hover:opacity-90">
-                    Connect
-                  </Link>
+                  <button
+                    onClick={() => void handleConnect()}
+                    disabled={connecting || connectionStatus !== "none"}
+                    className={`font-bold px-8 py-2.5 rounded-lg text-sm shadow-xl transition-all active:scale-95 cursor-pointer ${
+                      connectionStatus === "accepted"
+                        ? "bg-[#d5fde2] text-[#0f5238] border border-[#0f5238]/30"
+                        : connectionStatus === "pending"
+                        ? "bg-[#d5fde2] text-[#0f5238] border border-[#0f5238]/30"
+                        : connectionStatus === "declined"
+                        ? "bg-gray-100 text-gray-600 border border-gray-200"
+                        : "bg-gradient-to-br from-[#0f5238] to-[#2d6a4f] text-white hover:opacity-90"
+                    } disabled:opacity-80`}
+                  >
+                    {connecting
+                      ? "Sending..."
+                      : connectionStatus === "accepted"
+                      ? "Connected ✓"
+                      : connectionStatus === "pending"
+                      ? "Request Sent ✓"
+                      : connectionStatus === "declined"
+                      ? "Request Declined"
+                      : "Connect"}
+                  </button>
                 </>
               )}
             </div>

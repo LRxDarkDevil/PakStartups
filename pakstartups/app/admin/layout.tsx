@@ -96,7 +96,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="h-8 w-8 rounded-full bg-[#0f5238] flex items-center justify-center text-white text-xs font-black ring-2 ring-[#f5fbf7]">
               {profile?.photoURL ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.photoURL} alt="Admin" className="w-full h-full rounded-full object-cover" />
+                <img src={profile.photoURL} alt="Admin" referrerPolicy="no-referrer" className="w-full h-full rounded-full object-cover" />
               ) : initials}
             </div>
             <button

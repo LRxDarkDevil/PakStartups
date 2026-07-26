@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
 
@@ -26,10 +26,10 @@ export default function SocialAccountsPage() {
             const socialLinks = Object.fromEntries(
                 Object.entries(form).filter(([, value]) => value.trim())
             );
-            await updateDoc(doc(db, "users", user.uid), {
+            await setDoc(doc(db, "users", user.uid), {
                 socialLinks,
                 updatedAt: serverTimestamp(),
-            });
+            }, { merge: true });
             setSaved(true);
             setTimeout(() => setSaved(false), 2500);
         } finally {
