@@ -142,3 +142,77 @@ export async function upsertMatchProfile(uid: string, data: MatchProfileInput) {
     await setDoc(ref, { ...payload, createdAt: serverTimestamp() });
   }
 }
+
+export type CoFounderRequestStatus =
+  | "draft"
+  | "submitted"
+  | "under_review"
+  | "shortlisted"
+  | "introduced"
+  | "closed"
+  | "rejected";
+
+export type CoFounderRequest = {
+  id?: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  ventureName: string;
+  ventureStage: "Idea" | "MVP" | "Growth" | "Scaling";
+  desiredRole: "CTO / Technical Co-Founder" | "CEO / Business Co-Founder" | "CPO / Product Co-Founder" | "CMO / Growth Co-Founder";
+  requiredSkills: string[];
+  commitment: "Full-Time" | "Part-Time" | "Flexible";
+  equityRange: string;
+  regionPreference: string;
+  contactConsent: boolean;
+  status: CoFounderRequestStatus;
+  adminNotes?: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
+
+const REQUESTS_COL = "cofounder_requests";
+
+export async function submitCoFounderRequest(data: Omit<CoFounderRequest, "id" | "status" | "createdAt" | "updatedAt">) {
+  return addDoc(collection(db, REQUESTS_COL), {
+    ...data,
+    status: "submitted",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function getUserCoFounderRequests(userId: string): Promise<CoFounderRequest[]> {
+  try {
+    const q = query(
+      collection(db, REQUESTS_COL),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    const snaps = await getDocs(q);
+    return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as CoFounderRequest);
+  } catch (err) {
+    console.warn("Failed to fetch user cofounder requests", err);
+    return [];
+  }
+}
+
+export async function getAllCoFounderRequests(): Promise<CoFounderRequest[]> {
+  try {
+    const q = query(collection(db, REQUESTS_COL), orderBy("createdAt", "desc"), limit(100));
+    const snaps = await getDocs(q);
+    return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as CoFounderRequest);
+  } catch (err) {
+    console.warn("Failed to fetch all cofounder requests", err);
+    return [];
+  }
+}
+
+export async function updateCoFounderRequestStatus(requestId: string, status: CoFounderRequestStatus, adminNotes?: string) {
+  const { updateDoc } = await import("firebase/firestore");
+  await updateDoc(doc(db, REQUESTS_COL, requestId), {
+    status,
+    ...(adminNotes ? { adminNotes } : {}),
+    updatedAt: serverTimestamp(),
+  });
+}

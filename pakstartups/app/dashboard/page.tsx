@@ -156,7 +156,10 @@ export default function DashboardPage() {
                           <span className="text-xs text-[#404943]">{s.city} · {s.category}</span>
                         </div>
                       </div>
-                      <Link href={`/startups/${s.slug}`} className="text-[#0f5238] hover:underline font-bold text-sm shrink-0">View →</Link>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link href={`/startups/${s.slug}`} className="text-[#0f5238] hover:underline font-bold text-sm">View</Link>
+                        <Link href={`/startups/${s.slug}/edit`} className="bg-[#0f5238] text-white px-3 py-1 rounded text-xs font-bold hover:bg-[#2d6a4f]">Edit</Link>
+                      </div>
                     </div>
                   ))
                 )}

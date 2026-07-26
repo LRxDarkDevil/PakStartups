@@ -13,7 +13,15 @@ import {
 export type EcosystemOrg = {
   id?: string;
   name: string;
-  type: "Incubator" | "Accelerator" | "Co-Working" | "Venture Capital" | "Government" | "Innovation Hub";
+  type:
+    | "Incubator"
+    | "Accelerator"
+    | "Co-Working"
+    | "Venture Capital"
+    | "Angel Investor"
+    | "Government"
+    | "Innovation Hub"
+    | "ESOP & Advisory";
   city: string;
   country?: CanonicalLocation["country"];
   countryCode?: CanonicalLocation["countryCode"];
@@ -24,6 +32,10 @@ export type EcosystemOrg = {
   icon: string;
   website?: string;
   email?: string;
+  ticketSize?: string;
+  verificationStatus?: "verified" | "unverified" | "pending";
+  isSponsored?: boolean;
+  claimStatus?: "unclaimed" | "claimed" | "pending_claim";
   featured: boolean;
   approved: boolean;
   submittedBy?: string;

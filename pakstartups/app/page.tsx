@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import HomePageClient from "@/components/home/HomePageClient";
 
 export const metadata: Metadata = {
-  title: "PakStartups — Where Pakistan's Founders Build Together",
+  title: "PakStartups — Pakistan's Primary Startup Directory & Ecosystem",
   description:
-    "Discover startups, find co-founders, access the B2B marketplace, and join Pakistan's most active startup community.",
+    "Explore Pakistan's #1 startup directory. Discover verified Pakistani startups, search local tech companies, and connect with founders.",
 };
 
 export default function HomePage() {
