@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
+import { createCanonicalLocation, isRegionId, REGIONS } from "@/lib/location";
 import Link from "next/link";
 
 const steps = ["Basic Info", "Team & Stage", "Review", "Done"];
 const categories = ["FinTech","AgriTech","HealthTech","EdTech","E-Commerce","SaaS","Logistics","Cleantech","Prop-Tech","HR-Tech","Other"];
 const stages = ["Idea","MVP","Growth","Scaling","Profitable"];
-const cities = ["Karachi","Lahore","Islamabad","Faisalabad","Rawalpindi","Peshawar","Quetta","Multan","Other"];
 const teamSizes = ["1 (Solo Founder)","2–5","6–15","16–50","50+"];
 
 type FormData = {
@@ -18,6 +18,7 @@ type FormData = {
   tagline: string;
   desc: string;
   category: string;
+  regionId: string;
   city: string;
   website: string;
   stage: string;
@@ -34,7 +35,7 @@ export default function SubmitStartupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState<FormData>({
-    name: "", tagline: "", desc: "", category: "", city: "",
+    name: "", tagline: "", desc: "", category: "", regionId: "", city: "",
     website: "", stage: "", teamSize: "1 (Solo Founder)",
     founders: "", linkedin: "", agreed: false,
   });
@@ -53,7 +54,7 @@ export default function SubmitStartupPage() {
       if (!form.tagline.trim()) return "Tagline is required.";
       if (!form.desc.trim() || form.desc.length < 20) return "Description must be at least 20 characters.";
       if (!form.category) return "Please select a category.";
-      if (!form.city) return "Please select a city.";
+      if (!isRegionId(form.regionId)) return "Please select a valid region.";
     }
     if (step === 1) {
       if (!form.stage) return "Please select your current stage.";
@@ -75,16 +76,21 @@ export default function SubmitStartupPage() {
     const err = validateStep();
     if (err) { setError(err); return; }
     if (!user) { router.push("/auth/login"); return; }
+    if (!isRegionId(form.regionId)) { setError("Please select a valid region."); return; }
     setSubmitting(true);
     setError("");
     try {
       const slug = form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const location = createCanonicalLocation({
+        regionId: form.regionId,
+        city: form.city,
+      });
       await addDoc(collection(db, "startups"), {
         name: form.name.trim(),
         tagline: form.tagline.trim(),
         desc: form.desc.trim(),
         category: form.category,
-        city: form.city,
+        ...location,
         website: form.website.trim(),
         stage: form.stage,
         teamSize: form.teamSize,
@@ -157,7 +163,7 @@ export default function SubmitStartupPage() {
 
       <div className="max-w-3xl mx-auto px-8 py-12">
         {error && (
-          <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
+          <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-medium" role="alert">
             <span className="material-symbols-outlined text-sm">error</span> {error}
           </div>
         )}
@@ -181,13 +187,16 @@ export default function SubmitStartupPage() {
                   {categories.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </Field>
-              <Field label="City *">
-                <select value={form.city} onChange={(e) => set("city", e.target.value)} className={inp}>
-                  <option value="">Select city...</option>
-                  {cities.map((c) => <option key={c}>{c}</option>)}
+              <Field label="Region *">
+                <select value={form.regionId} onChange={(e) => set("regionId", e.target.value)} className={inp}>
+                  <option value="">Select region...</option>
+                  {REGIONS.map((region) => <option key={region.id} value={region.id}>{region.label}</option>)}
                 </select>
               </Field>
             </div>
+            <Field label="City (optional)">
+              <input value={form.city} onChange={(e) => set("city", e.target.value)} type="text" placeholder="e.g. Lahore" className={inp} />
+            </Field>
             <Field label="Website URL">
               <input value={form.website} onChange={(e) => set("website", e.target.value)} type="url" placeholder="https://yourstartup.pk" className={inp} />
             </Field>
@@ -229,7 +238,8 @@ export default function SubmitStartupPage() {
                 ["Startup Name", form.name || "—"],
                 ["Tagline", form.tagline || "—"],
                 ["Category", form.category || "—"],
-                ["City", form.city || "—"],
+                ["Region", REGIONS.find((region) => region.id === form.regionId)?.label || "—"],
+                ["City", form.city || "Not specified"],
                 ["Stage", form.stage || "—"],
                 ["Team Size", form.teamSize],
                 ["Founders", form.founders || "—"],

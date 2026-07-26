@@ -2,52 +2,95 @@
 
 import { useState, useEffect } from "react";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
-import { db, auth } from "@/lib/firebase/config";
+import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
+import {
+  REGIONS,
+  createCanonicalLocation,
+  inferRegionIdFromCity,
+  isRegionId,
+  type RegionId,
+} from "@/lib/location";
 
-const CITIES = ["Karachi","Lahore","Islamabad","Faisalabad","Rawalpindi","Peshawar","Quetta","Multan","Other"];
-const ROLES = ["Founder","Freelancer","Student","Investor","Mentor","Tech Lead"];
+const ROLES = ["Founder", "Freelancer", "Student", "Investor", "Mentor", "Tech Lead"];
+
+type SettingsForm = {
+  fullName: string;
+  bio: string;
+  regionId: RegionId | "";
+  city: string;
+  role: string;
+  photoURL: string;
+};
+
+type LocationAwareProfile = {
+  regionId?: unknown;
+  city?: string;
+};
 
 export default function SettingsPage() {
   const { user, profile } = useAuth();
-  const [form, setForm] = useState({ fullName: "", bio: "", city: "", role: "", photoURL: "" });
+  const [form, setForm] = useState<SettingsForm>({
+    fullName: "",
+    bio: "",
+    regionId: "",
+    city: "",
+    role: "",
+    photoURL: "",
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  // Preload form with real profile data
   useEffect(() => {
-    if (profile) {
-      setForm({
-        fullName: profile.fullName || "",
-        bio: profile.bio || "",
-        city: profile.city || "",
-        role: profile.role || "founder",
-        photoURL: profile.photoURL || "",
-      });
-    }
+    if (!profile) return;
+
+    const locationProfile = profile as typeof profile & LocationAwareProfile;
+    const regionId = isRegionId(locationProfile.regionId)
+      ? locationProfile.regionId
+      : inferRegionIdFromCity(locationProfile.city);
+
+    setForm({
+      fullName: profile.fullName || "",
+      bio: profile.bio || "",
+      regionId,
+      city: profile.city || "",
+      role: profile.role || "founder",
+      photoURL: profile.photoURL || "",
+    });
   }, [profile]);
 
-  const set = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }));
+  const set = <K extends keyof SettingsForm>(field: K, value: SettingsForm[K]) =>
+    setForm((previous) => ({ ...previous, [field]: value }));
 
   const handleSave = async () => {
     if (!user) return;
+    if (!isRegionId(form.regionId)) {
+      setSaveError("Select a valid region before saving.");
+      return;
+    }
+
     setSaving(true);
     setSaveError("");
     try {
+      const location = createCanonicalLocation({
+        regionId: form.regionId,
+        city: form.city,
+      });
+
       await updateDoc(doc(db, "users", user.uid), {
         fullName: form.fullName.trim(),
         bio: form.bio.trim(),
-        city: form.city,
+        ...location,
+        city: location.city ?? "",
         role: form.role.toLowerCase(),
-          photoURL: form.photoURL.trim() || null,
+        photoURL: form.photoURL.trim() || null,
         updatedAt: serverTimestamp(),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (e: unknown) {
-      setSaveError(e instanceof Error ? e.message : "Failed to save.");
+    } catch (error: unknown) {
+      setSaveError(error instanceof Error ? error.message : "Failed to save.");
     } finally {
       setSaving(false);
     }
@@ -67,7 +110,6 @@ export default function SettingsPage() {
       <h2 className="text-2xl font-bold text-[#002112] mb-2">Public Profile</h2>
       <p className="text-[#707973] text-sm mb-8">This information is displayed publicly on your profile.</p>
 
-      {/* Avatar */}
       <div className="flex items-center gap-6 mb-8">
         <div className="w-20 h-20 rounded-full bg-[#b4ef9d] flex items-center justify-center overflow-hidden">
           {profile?.photoURL
@@ -79,10 +121,11 @@ export default function SettingsPage() {
       </div>
 
       <div className="mb-6">
-        <label className="block text-sm font-medium text-[#404943] mb-2">Avatar URL</label>
+        <label htmlFor="avatar-url" className="block text-sm font-medium text-[#404943] mb-2">Avatar URL</label>
         <input
+          id="avatar-url"
           value={form.photoURL}
-          onChange={(e) => set("photoURL", e.target.value)}
+          onChange={(event) => set("photoURL", event.target.value)}
           placeholder="Paste a Cloudinary image URL"
           className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none transition-all"
         />
@@ -90,46 +133,79 @@ export default function SettingsPage() {
       </div>
 
       {saveError && (
-        <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <div role="alert" className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
           <span className="material-symbols-outlined text-sm">error</span> {saveError}
         </div>
       )}
 
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-[#404943] mb-2">Full Name</label>
-          <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)}
-            className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none transition-all" />
+          <label htmlFor="full-name" className="block text-sm font-medium text-[#404943] mb-2">Full Name</label>
+          <input
+            id="full-name"
+            value={form.fullName}
+            onChange={(event) => set("fullName", event.target.value)}
+            className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none transition-all"
+          />
         </div>
         <div>
-          <label className="block text-sm font-medium text-[#404943] mb-2">Bio</label>
-          <textarea value={form.bio} onChange={(e) => set("bio", e.target.value)} rows={3}
-            className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none resize-none transition-all" />
+          <label htmlFor="profile-bio" className="block text-sm font-medium text-[#404943] mb-2">Bio</label>
+          <textarea
+            id="profile-bio"
+            value={form.bio}
+            onChange={(event) => set("bio", event.target.value)}
+            rows={3}
+            className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none resize-none transition-all"
+          />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#404943] mb-2">City</label>
-            <select value={form.city} onChange={(e) => set("city", e.target.value)}
-              className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none">
-              <option value="">Select city...</option>
-              {CITIES.map((c) => <option key={c}>{c}</option>)}
+            <label htmlFor="profile-region" className="block text-sm font-medium text-[#404943] mb-2">Region</label>
+            <select
+              id="profile-region"
+              value={form.regionId}
+              onChange={(event) => set("regionId", event.target.value as RegionId | "")}
+              required
+              className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none"
+            >
+              <option value="">Select region...</option>
+              {REGIONS.map((region) => (
+                <option key={region.id} value={region.id}>{region.label}</option>
+              ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#404943] mb-2">Primary Role</label>
-            <select value={form.role} onChange={(e) => set("role", e.target.value)}
-              className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none">
-              {ROLES.map((r) => <option key={r} value={r.toLowerCase()}>{r}</option>)}
-            </select>
+            <label htmlFor="profile-city" className="block text-sm font-medium text-[#404943] mb-2">City <span className="font-normal text-[#707973]">(optional)</span></label>
+            <input
+              id="profile-city"
+              value={form.city}
+              onChange={(event) => set("city", event.target.value)}
+              placeholder="e.g. Lahore"
+              className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none"
+            />
           </div>
         </div>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 bg-[#0f5238] text-white px-8 py-3 rounded-lg font-bold hover:bg-[#2d6a4f] transition-all disabled:opacity-60">
+        <div>
+          <label htmlFor="primary-role" className="block text-sm font-medium text-[#404943] mb-2">Primary Role</label>
+          <select
+            id="primary-role"
+            value={form.role}
+            onChange={(event) => set("role", event.target.value)}
+            className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#002112] focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none"
+          >
+            {ROLES.map((role) => <option key={role} value={role.toLowerCase()}>{role}</option>)}
+          </select>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 bg-[#0f5238] text-white px-8 py-3 rounded-lg font-bold hover:bg-[#2d6a4f] transition-all disabled:opacity-60"
+        >
           {saving
             ? <><span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</>
             : saved
-            ? <><span className="material-symbols-outlined text-sm">check</span> Saved!</>
-            : "Save Changes"
+              ? <><span className="material-symbols-outlined text-sm">check</span> Saved!</>
+              : "Save Changes"
           }
         </button>
       </div>
@@ -137,9 +213,9 @@ export default function SettingsPage() {
       <div className="mt-10 pt-10 border-t border-[#e0e0e0]">
         <h3 className="text-lg font-bold text-[#002112] mb-6">Account Info</h3>
         <div>
-          <label className="block text-sm font-medium text-[#404943] mb-2">Email Address</label>
+          <label htmlFor="account-email" className="block text-sm font-medium text-[#404943] mb-2">Email Address</label>
           <div className="relative">
-            <input value={user.email ?? ""} readOnly className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#707973] bg-[#f9f9f9] pr-10 outline-none" />
+            <input id="account-email" value={user.email ?? ""} readOnly className="w-full px-4 py-3 border border-[#e0e0e0] rounded-lg text-[#707973] bg-[#f9f9f9] pr-10 outline-none" />
             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#0f5238] text-sm">verified</span>
           </div>
           <p className="text-xs text-[#707973] mt-2">Email is verified and tied to your Firebase account.</p>

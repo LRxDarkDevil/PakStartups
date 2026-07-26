@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { logout } from "@/lib/firebase/auth";
+import EventAnnouncementBar from "./EventAnnouncementBar";
 
 const navLinks = [
   { label: "Startup Directory", href: "/startups" },
@@ -24,7 +25,6 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -46,8 +46,8 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#e8ffee]/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(15,82,56,0.06)] font-['Plus_Jakarta_Sans'] antialiased text-sm font-medium">
+      <EventAnnouncementBar />
       <nav className="flex justify-between items-center w-full px-8 py-4 max-w-8xl mx-auto">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-2 active:scale-95 transform transition-transform cursor-pointer">
           <Image
             src="/logo.png"
@@ -59,7 +59,6 @@ export default function Header() {
           />
         </Link>
 
-        {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => {
             const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
@@ -77,7 +76,6 @@ export default function Header() {
           })}
         </div>
 
-        {/* Auth Section */}
         <div className="hidden md:flex items-center gap-4">
           {loading ? (
             <div className="w-9 h-9 rounded-full bg-[#d5fde2] animate-pulse" />
@@ -147,7 +145,6 @@ export default function Header() {
           )}
         </div>
 
-        {/* Mobile Hamburger */}
         <button
           className="md:hidden p-2 rounded-lg hover:bg-[#d5fde2] transition-colors"
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -159,7 +156,6 @@ export default function Header() {
         </button>
       </nav>
 
-      {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden bg-[#e8ffee] border-t border-[#c4ecd2] px-8 py-6 space-y-4">
           {navLinks.map((link) => (

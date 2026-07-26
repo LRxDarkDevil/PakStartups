@@ -14,6 +14,7 @@ const sideNav = [
   { label: "User Management", icon: "group", href: "/admin/users" },
   { label: "Blog & Stories", icon: "article", href: "/admin/blog" },
   { label: "Events Mgt.", icon: "event", href: "/admin/events" },
+  { label: "Event Banner", icon: "campaign", href: "/admin/events/announcement" },
   { label: "Volunteer Apps", icon: "volunteer_activism", href: "/admin/volunteers" },
   { label: "Reports", icon: "description", href: "/admin/reports" },
   { label: "Site Config", icon: "tune", href: "/admin/settings" },
@@ -113,7 +114,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         <aside className="w-64 border-r border-[#bfc9c1]/20 flex flex-col pt-8 pb-6 px-4 hidden lg:flex bg-white">
           <nav className="flex-1 space-y-1">
             {sideNav.map((item) => {
-              const isActive = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+              const isActive = item.href === "/admin"
+                ? pathname === "/admin"
+                : item.href === "/admin/events"
+                  ? pathname === "/admin/events"
+                  : pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}

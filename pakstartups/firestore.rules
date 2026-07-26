@@ -17,6 +17,41 @@ service cloud.firestore {
     function validString(field, minLen, maxLen) {
       return field is string && field.size() >= minLen && field.size() <= maxLen;
     }
+    function validRegionId(value) {
+      return value is string && value in [
+        'punjab',
+        'sindh',
+        'khyber-pakhtunkhwa',
+        'balochistan',
+        'islamabad-capital-territory',
+        'gilgit-baltistan',
+        'azad-jammu-kashmir',
+        'remote-online',
+        'other-unknown'
+      ];
+    }
+    function validCanonicalLocation(data) {
+      return data.country == 'Pakistan'
+        && data.countryCode == 'PK'
+        && validRegionId(data.regionId)
+        && validString(data.region, 2, 80)
+        && (!('city' in data) || data.city == null || validString(data.city, 1, 120));
+    }
+    function locationAbsentOrValid(data) {
+      return !data.keys().hasAny(['country', 'countryCode', 'regionId', 'region', 'city'])
+        || validCanonicalLocation(data);
+    }
+    function locationChangeValid() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'country', 'countryCode', 'regionId', 'region', 'city'
+      ]) || validCanonicalLocation(request.resource.data);
+    }
+    function safeAnnouncementDefaults(data) {
+      return (!('isFeatured' in data) || data.isFeatured == false)
+        && (!('announcementStartTs' in data) || data.announcementStartTs == null)
+        && (!('announcementEndTs' in data) || data.announcementEndTs == null)
+        && (!('announcementPriority' in data) || data.announcementPriority == 0);
+    }
     // Restrict self-assigned roles to the safe allowlist; only admin can set 'admin'
     function roleNotEscalated() {
       return !('role' in request.resource.data) ||
@@ -44,8 +79,11 @@ service cloud.firestore {
     // ─── Users ────────────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if true;
-      allow create: if isOwner(uid) && roleNotEscalated();
-      allow update: if (isOwner(uid) && roleNotEscalated()) || isAdmin();
+      allow create: if isOwner(uid)
+        && roleNotEscalated()
+        && locationAbsentOrValid(request.resource.data);
+      allow update: if ((isOwner(uid) && roleNotEscalated()) || isAdmin())
+        && locationChangeValid();
       allow delete: if isAdmin();
     }
 
@@ -62,8 +100,10 @@ service cloud.firestore {
         && validString(request.resource.data.name, 2, 100)
         && validString(request.resource.data.desc, 10, 500)
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.status == 'pending';
-      allow update: if isAdmin()
+        && request.resource.data.status == 'pending'
+        && validCanonicalLocation(request.resource.data);
+      allow update: if locationChangeValid() && (
+        isAdmin()
         // Owner can edit content but cannot change ownerId, status, or the views counter
         || (isOwner(resource.data.ownerId)
             && statusUnchanged()
@@ -71,16 +111,20 @@ service cloud.firestore {
         // Anyone (even unauthenticated) may increment views by exactly 1
         || (onlyChanged(['views'])
             && request.resource.data.views is int
-            && request.resource.data.views == resource.data.views + 1);
+            && request.resource.data.views == resource.data.views + 1)
+      );
       allow delete: if isOwner(resource.data.ownerId) || isAdmin();
     }
 
     // ─── Match Profiles ───────────────────────────────────────────────────────
     match /matchProfiles/{profileId} {
       allow read: if true;
-      allow create: if isAuth() && request.auth.uid == request.resource.data.uid;
+      allow create: if isAuth()
+        && request.auth.uid == request.resource.data.uid
+        && validCanonicalLocation(request.resource.data);
       // Owner can update their profile but cannot reassign the uid field
-      allow update: if (isOwner(resource.data.uid) && noneChanged(['uid'])) || isAdmin();
+      allow update: if locationChangeValid()
+        && ((isOwner(resource.data.uid) && noneChanged(['uid'])) || isAdmin());
       allow delete: if isOwner(resource.data.uid) || isAdmin();
     }
 
@@ -183,12 +227,23 @@ service cloud.firestore {
       allow create: if isAuth()
         && validString(request.resource.data.title, 5, 200)
         && request.resource.data.status == 'pending'
-        && request.resource.data.organizerId == request.auth.uid;
-      allow update: if isAdmin()
-        // Organizer can edit content but cannot change status, isFeatured, or the rsvpCount counter
-        || (isOwner(resource.data.organizerId) && statusUnchanged() && noneChanged(['organizerId', 'rsvpCount', 'isFeatured']))
+        && request.resource.data.organizerId == request.auth.uid
+        && validCanonicalLocation(request.resource.data)
+        && safeAnnouncementDefaults(request.resource.data);
+      allow update: if locationChangeValid() && (
+        isAdmin()
+        // Organizer can edit content but cannot change moderation, announcement, or RSVP fields
+        || (isOwner(resource.data.organizerId) && statusUnchanged() && noneChanged([
+          'organizerId',
+          'rsvpCount',
+          'isFeatured',
+          'announcementStartTs',
+          'announcementEndTs',
+          'announcementPriority'
+        ]))
         // Any authenticated user may RSVP / un-RSVP (±1 only)
-        || (isAuth() && onlyChanged(['rsvpCount']) && request.resource.data.rsvpCount is int && counterStep('rsvpCount'));
+        || (isAuth() && onlyChanged(['rsvpCount']) && request.resource.data.rsvpCount is int && counterStep('rsvpCount'))
+      );
       allow delete: if isOwner(resource.data.organizerId) || isAdmin();
 
       match /rsvps/{uid} {
@@ -212,7 +267,9 @@ service cloud.firestore {
     // ─── Ecosystem Orgs ───────────────────────────────────────────────────────
     match /ecosystemOrgs/{orgId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isAdmin() && validCanonicalLocation(request.resource.data);
+      allow update: if isAdmin() && locationChangeValid();
+      allow delete: if isAdmin();
     }
 
     // ─── Idea Resources ───────────────────────────────────────────────────────

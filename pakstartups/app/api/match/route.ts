@@ -7,13 +7,13 @@ import { getMatchProfiles } from "@/lib/services/match";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const role = searchParams.get("role") ?? undefined;
-  const city = searchParams.get("city") ?? undefined;
+  const locationFilter = searchParams.get("region") ?? searchParams.get("city") ?? undefined;
 
   try {
-    const results = await getMatchProfiles(role, city);
+    const results = await getMatchProfiles(role, locationFilter);
     return NextResponse.json({ data: results, total: results.length });
-  } catch (err) {
-    console.error("Match API error:", err);
+  } catch (error) {
+    console.error("Match API error:", error);
     return NextResponse.json({ error: "Failed to fetch profiles" }, { status: 500 });
   }
 }

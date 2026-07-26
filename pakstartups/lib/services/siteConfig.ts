@@ -1,24 +1,14 @@
-import { collection, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { createCanonicalLocation, REGIONS } from "@/lib/location";
 
 export type SiteFilters = {
-  cities: string[];
+  regions: string[];
   categories: string[];
 };
 
 export const DEFAULT_SITE_FILTERS: SiteFilters = {
-  cities: [
-    "Karachi",
-    "Lahore",
-    "Islamabad",
-    "Faisalabad",
-    "Sialkot",
-    "Peshawar",
-    "Rawalpindi",
-    "Multan",
-    "Hyderabad",
-    "Gwadar",
-  ],
+  regions: REGIONS.map((region) => region.label),
   categories: [
     "FinTech",
     "AgriTech",
@@ -34,14 +24,39 @@ export const DEFAULT_SITE_FILTERS: SiteFilters = {
 
 const FILTERS_DOC = doc(db, "siteConfig", "filters");
 
+function regionsFromLegacyCities(cities: unknown): string[] {
+  if (!Array.isArray(cities)) return [];
+
+  return Array.from(
+    new Set(
+      cities
+        .filter((city): city is string => typeof city === "string" && city.trim().length > 0)
+        .map((city) => createCanonicalLocation({ city }).region)
+    )
+  );
+}
+
 export async function getSiteFilters(): Promise<SiteFilters> {
   const snap = await getDoc(FILTERS_DOC);
   if (!snap.exists()) return DEFAULT_SITE_FILTERS;
 
-  const data = snap.data() as Partial<SiteFilters>;
+  const data = snap.data() as { regions?: unknown; cities?: unknown; categories?: unknown };
+  const configuredRegions = Array.isArray(data.regions)
+    ? data.regions.filter((region): region is string => typeof region === "string" && region.trim().length > 0)
+    : [];
+  const legacyRegions = regionsFromLegacyCities(data.cities);
+  const categories = Array.isArray(data.categories)
+    ? data.categories.filter((category): category is string => typeof category === "string" && category.trim().length > 0)
+    : [];
+
   return {
-    cities: Array.isArray(data.cities) && data.cities.length > 0 ? data.cities : DEFAULT_SITE_FILTERS.cities,
-    categories: Array.isArray(data.categories) && data.categories.length > 0 ? data.categories : DEFAULT_SITE_FILTERS.categories,
+    regions:
+      configuredRegions.length > 0
+        ? configuredRegions
+        : legacyRegions.length > 0
+          ? legacyRegions
+          : DEFAULT_SITE_FILTERS.regions,
+    categories: categories.length > 0 ? categories : DEFAULT_SITE_FILTERS.categories,
   };
 }
 
@@ -49,7 +64,7 @@ export async function saveSiteFilters(filters: SiteFilters) {
   await setDoc(
     FILTERS_DOC,
     {
-      cities: filters.cities,
+      regions: filters.regions,
       categories: filters.categories,
       updatedAt: serverTimestamp(),
     },

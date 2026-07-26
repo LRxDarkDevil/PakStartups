@@ -103,7 +103,8 @@ export default function EventsPage() {
   };
 
   const handleShare = async (event: EventItem) => {
-    const url = `${window.location.origin}/events/view?id=${event.id}`;
+    if (!event.id) return;
+    const url = `${window.location.origin}/events/${encodeURIComponent(event.id)}`;
     if (navigator.share) {
       await navigator.share({ title: event.title, url });
       return;
@@ -234,13 +235,25 @@ export default function EventsPage() {
               <div className="space-y-4">
                 {filteredEvents.map((e) => {
                   const dateInfo = formatDate(e);
+                  const eventHref = e.id ? `/events/${encodeURIComponent(e.id)}` : "/events";
                   return (
                     <div key={e.id} className="bg-white rounded-xl p-6 flex items-center gap-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)] hover:shadow-[0_8px_32px_rgba(15,82,56,0.1)] transition-all">
                       <div className="bg-[#0f5238] text-white rounded-xl px-4 py-3 text-center min-w-[60px] shrink-0">
                         <div className="text-xs font-bold uppercase">{dateInfo.month}</div>
                         <div className="text-2xl font-black">{dateInfo.day}</div>
                       </div>
-                      <div onClick={() => router.push(`/events/view?id=${e.id ?? ""}`)} role="button" tabIndex={0} className="flex-1 cursor-pointer">
+                      <div
+                        onClick={() => router.push(eventHref)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            router.push(eventHref);
+                          }
+                        }}
+                        role="link"
+                        tabIndex={0}
+                        className="flex-1 cursor-pointer rounded focus:outline-none focus:ring-2 focus:ring-[#0f5238]/40"
+                      >
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-bold text-[#002112]">{e.title}</span>
                           <span className="px-2 py-0.5 bg-[#d5fde2] text-[#0f5238] text-[10px] font-bold rounded uppercase">{e.type}</span>

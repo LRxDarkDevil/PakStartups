@@ -13,6 +13,7 @@ import {
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
+import type { CanonicalLocation, RegionId } from "@/lib/location";
 
 export type UserProfile = {
   uid: string;
@@ -20,7 +21,11 @@ export type UserProfile = {
   fullName: string;
   photoURL: string | null;
   role: string;
-  city: string;
+  city?: string;
+  country?: CanonicalLocation["country"];
+  countryCode?: CanonicalLocation["countryCode"];
+  regionId?: RegionId;
+  region?: string;
   bio: string;
   skills: string[];
   interests?: string[];
@@ -58,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      
+
       if (unsubSnapshot) {
         unsubSnapshot();
         unsubSnapshot = null;
@@ -73,8 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             setLoading(false);
           },
-          (e) => {
-            console.error("[AuthContext] Failed to load profile:", e);
+          (error) => {
+            console.error("[AuthContext] Failed to load profile:", error);
             setLoading(false);
           }
         );

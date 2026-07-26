@@ -1,8 +1,14 @@
 import {
-  collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc,
+  collection, addDoc, getDocs, updateDoc, deleteDoc,
   query, where, orderBy, doc, serverTimestamp, limit,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import {
+  createCanonicalLocation,
+  isRegionId,
+  type CanonicalLocation,
+  type RegionId,
+} from "@/lib/location";
 
 export type EcosystemOrg = {
   id?: string;
@@ -17,6 +23,10 @@ export type EcosystemOrg = {
     | "Innovation Hub"
     | "ESOP & Advisory";
   city: string;
+  country?: CanonicalLocation["country"];
+  countryCode?: CanonicalLocation["countryCode"];
+  regionId?: RegionId;
+  region?: string;
   desc: string;
   tags: string[];
   icon: string;
@@ -35,6 +45,20 @@ export type EcosystemOrg = {
 
 const COL = "ecosystemOrgs";
 
+type EcosystemOrgInput = Omit<
+  EcosystemOrg,
+  "id" | "createdAt" | "updatedAt" | "country" | "countryCode" | "region"
+> & { regionId?: RegionId };
+
+function hydrateEcosystemOrg(id: string, data: Omit<EcosystemOrg, "id">): EcosystemOrg {
+  const canonical = createCanonicalLocation({
+    regionId: isRegionId(data.regionId) ? data.regionId : undefined,
+    city: data.city,
+  });
+
+  return { id, ...data, ...canonical, city: data.city };
+}
+
 export async function getEcosystemOrgs(): Promise<EcosystemOrg[]> {
   const q = query(
     collection(db, COL),
@@ -43,30 +67,37 @@ export async function getEcosystemOrgs(): Promise<EcosystemOrg[]> {
   );
   const snaps = await getDocs(q);
   return snaps.docs
-    .map((d) => ({ id: d.id, ...d.data() }) as EcosystemOrg)
+    .map((d) => hydrateEcosystemOrg(d.id, d.data() as Omit<EcosystemOrg, "id">))
     .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
 }
 
 export async function getAllEcosystemOrgs(): Promise<EcosystemOrg[]> {
   const q = query(collection(db, COL), orderBy("createdAt", "desc"), limit(100));
   const snaps = await getDocs(q);
-  return snaps.docs.map((d) => ({ id: d.id, ...d.data() }) as EcosystemOrg);
+  return snaps.docs.map((d) => hydrateEcosystemOrg(d.id, d.data() as Omit<EcosystemOrg, "id">));
 }
 
-export async function addEcosystemOrg(
-  data: Omit<EcosystemOrg, "id" | "createdAt" | "updatedAt">,
-  submittedBy?: string
-) {
+export async function addEcosystemOrg(data: EcosystemOrgInput, submittedBy?: string) {
+  const canonical = createCanonicalLocation({ regionId: data.regionId, city: data.city });
   return addDoc(collection(db, COL), {
     ...data,
+    ...canonical,
+    city: data.city,
     submittedBy: submittedBy ?? null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }
 
-export async function updateEcosystemOrg(id: string, data: Partial<EcosystemOrg>) {
-  await updateDoc(doc(db, COL, id), { ...data, updatedAt: serverTimestamp() });
+export async function updateEcosystemOrg(id: string, data: Partial<EcosystemOrgInput>) {
+  const canonical = data.city !== undefined || data.regionId !== undefined
+    ? createCanonicalLocation({ regionId: data.regionId, city: data.city })
+    : null;
+  await updateDoc(doc(db, COL, id), {
+    ...data,
+    ...(canonical ?? {}),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function deleteEcosystemOrg(id: string) {

@@ -3,6 +3,7 @@
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
 import { useEffect } from "react";
+import { createCanonicalLocation, isRegionId } from "@/lib/location";
 import { useAuth } from "./AuthContext";
 
 function PostHogIdentity() {
@@ -10,10 +11,20 @@ function PostHogIdentity() {
 
   useEffect(() => {
     if (user) {
+      const location = createCanonicalLocation({
+        regionId: isRegionId(profile?.regionId) ? profile.regionId : undefined,
+        city: profile?.city,
+      });
+
       posthog.identify(user.uid, {
         email: user.email,
         name: profile?.fullName ?? user.displayName ?? undefined,
         role: profile?.role ?? "user",
+        country: location.country,
+        country_code: location.countryCode,
+        region_id: location.regionId,
+        region: location.region,
+        city: location.city,
       });
     } else {
       posthog.reset();

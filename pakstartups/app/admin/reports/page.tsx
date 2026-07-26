@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, getCountFromServer, getDocs, limit, query } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { createCanonicalLocation, isRegionId } from "@/lib/location";
 
 type MonthPoint = { month: string; startups: number; members: number };
 type CategoryPoint = { label: string; count: number; pct: number };
-type CityPoint = { city: string; count: number; pct: number };
+type RegionPoint = { region: string; count: number; pct: number };
 
 type Metric = { label: string; value: string; growth: string; icon: string };
 
@@ -39,15 +40,18 @@ export default function ReportsManagementPage() {
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthPoint[]>([]);
   const [topCategories, setTopCategories] = useState<CategoryPoint[]>([]);
-  const [cityDistribution, setCityDistribution] = useState<CityPoint[]>([]);
+  const [regionDistribution, setRegionDistribution] = useState<RegionPoint[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
         const now = new Date();
         const firstMonthDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-        const months: Date[] = Array.from({ length: 6 }, (_, i) => new Date(firstMonthDate.getFullYear(), firstMonthDate.getMonth() + i, 1));
-        const monthIndex = new Map(months.map((d, i) => [`${d.getFullYear()}-${d.getMonth()}`, i]));
+        const months: Date[] = Array.from(
+          { length: 6 },
+          (_, index) => new Date(firstMonthDate.getFullYear(), firstMonthDate.getMonth() + index, 1)
+        );
+        const monthIndex = new Map(months.map((date, index) => [`${date.getFullYear()}-${date.getMonth()}`, index]));
 
         const [
           startupsCountSnap,
@@ -65,46 +69,56 @@ export default function ReportsManagementPage() {
           getDocs(query(collection(db, "users"), limit(5000))),
         ]);
 
-        const monthly: MonthPoint[] = months.map((d) => ({ month: monthLabel(d), startups: 0, members: 0 }));
+        const monthly: MonthPoint[] = months.map((date) => ({
+          month: monthLabel(date),
+          startups: 0,
+          members: 0,
+        }));
         const categoryCounts = new Map<string, number>();
-        const cityCounts = new Map<string, number>();
+        const regionCounts = new Map<string, number>();
 
         startupsSnap.docs.forEach((docSnap) => {
-          const data = docSnap.data() as { createdAt?: unknown; category?: string; city?: string };
+          const data = docSnap.data() as {
+            createdAt?: unknown;
+            category?: string;
+            city?: string;
+            regionId?: unknown;
+          };
           const created = toDate(data.createdAt);
           if (created) {
-            const idx = monthIndex.get(`${created.getFullYear()}-${created.getMonth()}`);
-            if (idx !== undefined) monthly[idx].startups += 1;
+            const index = monthIndex.get(`${created.getFullYear()}-${created.getMonth()}`);
+            if (index !== undefined) monthly[index].startups += 1;
           }
 
-          const cat = (data.category || "Other").trim();
-          categoryCounts.set(cat, (categoryCounts.get(cat) ?? 0) + 1);
+          const category = (data.category || "Other").trim();
+          categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
 
-          const cityRaw = (data.city || "Other Cities").trim();
-          const city = cityRaw.length > 0 ? cityRaw : "Other Cities";
-          cityCounts.set(city, (cityCounts.get(city) ?? 0) + 1);
+          const location = createCanonicalLocation({
+            regionId: isRegionId(data.regionId) ? data.regionId : undefined,
+            city: data.city,
+          });
+          regionCounts.set(location.region, (regionCounts.get(location.region) ?? 0) + 1);
         });
 
         usersSnap.docs.forEach((docSnap) => {
           const data = docSnap.data() as { createdAt?: unknown };
           const created = toDate(data.createdAt);
           if (!created) return;
-          const idx = monthIndex.get(`${created.getFullYear()}-${created.getMonth()}`);
-          if (idx !== undefined) monthly[idx].members += 1;
+          const index = monthIndex.get(`${created.getFullYear()}-${created.getMonth()}`);
+          if (index !== undefined) monthly[index].members += 1;
         });
 
         const totalCategories = Math.max(1, Array.from(categoryCounts.values()).reduce((a, b) => a + b, 0));
-        const totalCities = Math.max(1, Array.from(cityCounts.values()).reduce((a, b) => a + b, 0));
+        const totalRegions = Math.max(1, Array.from(regionCounts.values()).reduce((a, b) => a + b, 0));
 
         const topCats = Array.from(categoryCounts.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 6)
           .map(([label, count]) => ({ label, count, pct: Math.round((count / totalCategories) * 100) }));
 
-        const topCities = Array.from(cityCounts.entries())
+        const topRegions = Array.from(regionCounts.entries())
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([city, count]) => ({ city, count, pct: Math.round((count / totalCities) * 100) }));
+          .map(([region, count]) => ({ region, count, pct: Math.round((count / totalRegions) * 100) }));
 
         const prevMonth = monthly[Math.max(0, monthly.length - 2)] ?? { startups: 0, members: 0 };
         const currMonth = monthly[Math.max(0, monthly.length - 1)] ?? { startups: 0, members: 0 };
@@ -139,7 +153,7 @@ export default function ReportsManagementPage() {
         setMetrics(metricData);
         setMonthlyData(monthly);
         setTopCategories(topCats);
-        setCityDistribution(topCities);
+        setRegionDistribution(topRegions);
       } catch (error) {
         console.error("Failed to load analytics:", error);
       } finally {
@@ -148,8 +162,8 @@ export default function ReportsManagementPage() {
     })();
   }, []);
 
-  const maxStartups = useMemo(() => Math.max(1, ...monthlyData.map((d) => d.startups)), [monthlyData]);
-  const maxMembers = useMemo(() => Math.max(1, ...monthlyData.map((d) => d.members)), [monthlyData]);
+  const maxStartups = useMemo(() => Math.max(1, ...monthlyData.map((data) => data.startups)), [monthlyData]);
+  const maxMembers = useMemo(() => Math.max(1, ...monthlyData.map((data) => data.members)), [monthlyData]);
 
   return (
     <div className="p-8 space-y-8">
@@ -160,20 +174,20 @@ export default function ReportsManagementPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {loading
-          ? [...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white p-6 rounded-xl border border-[#bfc9c1]/20 shadow-sm animate-pulse h-28" />
+          ? [...Array(4)].map((_, index) => (
+              <div key={index} className="bg-white p-6 rounded-xl border border-[#bfc9c1]/20 shadow-sm animate-pulse h-28" />
             ))
-          : metrics.map((m) => (
-              <div key={m.label} className="bg-white p-6 rounded-xl border border-[#bfc9c1]/20 shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
+          : metrics.map((metric) => (
+              <div key={metric.label} className="bg-white p-6 rounded-xl border border-[#bfc9c1]/20 shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-widest text-[#404943]">{m.label}</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[#404943]">{metric.label}</span>
                   <div className="w-8 h-8 bg-[#d5fde2] rounded-lg flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[#0f5238] text-base">{m.icon}</span>
+                    <span className="material-symbols-outlined text-[#0f5238] text-base">{metric.icon}</span>
                   </div>
                 </div>
                 <div className="flex items-end gap-3">
-                  <span className="text-4xl font-black text-[#0f5238]">{m.value}</span>
-                  <span className="text-sm font-bold text-[#2d6a4f] bg-[#cff7dd] px-2 py-0.5 rounded-full mb-1">{m.growth}</span>
+                  <span className="text-4xl font-black text-[#0f5238]">{metric.value}</span>
+                  <span className="text-sm font-bold text-[#2d6a4f] bg-[#cff7dd] px-2 py-0.5 rounded-full mb-1">{metric.growth}</span>
                 </div>
               </div>
             ))}
@@ -198,22 +212,22 @@ export default function ReportsManagementPage() {
         </div>
 
         <div className="flex items-end gap-4 h-48 pt-4">
-          {monthlyData.map((d) => (
-            <div key={d.month} className="flex-1 flex flex-col items-center gap-1">
+          {monthlyData.map((data) => (
+            <div key={data.month} className="flex-1 flex flex-col items-center gap-1">
               <div className="w-full flex items-end gap-1 h-40">
-                <div className="flex-1 bg-[#0f5238] rounded-t-md transition-all hover:bg-[#2d6a4f]" style={{ height: `${(d.startups / maxStartups) * 100}%` }} title={`Startups: ${d.startups}`} />
-                <div className="flex-1 bg-[#b7f2a0] rounded-t-md transition-all hover:bg-[#a3e88c]" style={{ height: `${(d.members / maxMembers) * 100}%` }} title={`Members: ${d.members}`} />
+                <div className="flex-1 bg-[#0f5238] rounded-t-md transition-all hover:bg-[#2d6a4f]" style={{ height: `${(data.startups / maxStartups) * 100}%` }} title={`Startups: ${data.startups}`} />
+                <div className="flex-1 bg-[#b7f2a0] rounded-t-md transition-all hover:bg-[#a3e88c]" style={{ height: `${(data.members / maxMembers) * 100}%` }} title={`Members: ${data.members}`} />
               </div>
-              <span className="text-xs font-bold text-[#707973]">{d.month}</span>
+              <span className="text-xs font-bold text-[#707973]">{data.month}</span>
             </div>
           ))}
         </div>
 
         <div className="flex gap-4 mt-3 pt-3 border-t border-[#e0e0e0]">
-          {monthlyData.map((d) => (
-            <div key={d.month} className="flex-1 text-center">
-              <p className="text-xs font-bold text-[#0f5238]">+{d.startups}</p>
-              <p className="text-[10px] text-[#707973]">+{d.members}</p>
+          {monthlyData.map((data) => (
+            <div key={data.month} className="flex-1 text-center">
+              <p className="text-xs font-bold text-[#0f5238]">+{data.startups}</p>
+              <p className="text-[10px] text-[#707973]">+{data.members}</p>
             </div>
           ))}
         </div>
@@ -223,14 +237,14 @@ export default function ReportsManagementPage() {
         <div className="bg-white rounded-xl border border-[#bfc9c1]/20 p-6 shadow-sm">
           <h3 className="text-lg font-bold text-[#002112] mb-5">Top Startup Categories</h3>
           <div className="space-y-3">
-            {topCategories.map((cat) => (
-              <div key={cat.label}>
+            {topCategories.map((category) => (
+              <div key={category.label}>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-bold text-[#002112]">{cat.label}</span>
-                  <span className="text-sm font-bold text-[#0f5238]">{cat.count}</span>
+                  <span className="text-sm font-bold text-[#002112]">{category.label}</span>
+                  <span className="text-sm font-bold text-[#0f5238]">{category.count}</span>
                 </div>
                 <div className="w-full bg-[#f5faf6] rounded-full h-2">
-                  <div className="bg-[#0f5238] h-2 rounded-full transition-all" style={{ width: `${cat.pct}%` }} />
+                  <div className="bg-[#0f5238] h-2 rounded-full transition-all" style={{ width: `${category.pct}%` }} />
                 </div>
               </div>
             ))}
@@ -238,12 +252,12 @@ export default function ReportsManagementPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-[#bfc9c1]/20 p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-[#002112] mb-5">City Distribution</h3>
+          <h3 className="text-lg font-bold text-[#002112] mb-5">Region Distribution</h3>
           <div className="space-y-3">
-            {cityDistribution.map((item) => (
-              <div key={item.city}>
+            {regionDistribution.map((item) => (
+              <div key={item.region}>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-bold text-[#002112]">{item.city}</span>
+                  <span className="text-sm font-bold text-[#002112]">{item.region}</span>
                   <span className="text-sm text-[#404943]">{item.count} <span className="text-[#707973]">({item.pct}%)</span></span>
                 </div>
                 <div className="w-full bg-[#f5faf6] rounded-full h-2">
