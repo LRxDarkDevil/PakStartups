@@ -65,3 +65,26 @@ export async function submitStartup(data: Omit<Startup, "id" | "status" | "views
 export async function incrementStartupViews(id: string) {
   await updateDoc(doc(db, COL, id), { views: increment(1) });
 }
+
+export type StartupNomination = {
+  id?: string;
+  startupName: string;
+  website: string;
+  category: string;
+  city: string;
+  description: string;
+  nominatorName: string;
+  nominatorEmail: string;
+  relationship: "Customer" | "Investor" | "Community Member" | "Employee" | "Other";
+  evidenceUrl?: string;
+  status: "pending_review" | "approved" | "rejected";
+  createdAt?: unknown;
+};
+
+export async function nominateStartup(data: Omit<StartupNomination, "id" | "status" | "createdAt">) {
+  return addDoc(collection(db, "startup_nominations"), {
+    ...data,
+    status: "pending_review",
+    createdAt: serverTimestamp(),
+  });
+}

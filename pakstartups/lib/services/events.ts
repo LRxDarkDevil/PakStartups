@@ -19,6 +19,12 @@ export type EventItem = {
   rsvpCount: number;
   status: "pending" | "approved" | "past";
   isFeatured: boolean;
+  bookingMode?: "internal_rsvp" | "external_referral";
+  partnerId?: string;
+  partnerName?: string;
+  canonicalBookingUrl?: string;
+  commissionRate?: number;
+  referralDisclosure?: string;
   createdAt?: unknown;
 };
 

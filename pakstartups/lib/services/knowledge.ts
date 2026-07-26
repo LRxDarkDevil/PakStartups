@@ -64,3 +64,20 @@ export async function updateKnowledgeResource(id: string, data: Partial<Knowledg
 export async function deleteKnowledgeResource(id: string) {
   await deleteDoc(doc(db, COL, id));
 }
+
+export async function searchKnowledgeResources(queryStr: string): Promise<KnowledgeResource[]> {
+  try {
+    const all = await getAllKnowledgeResources();
+    const q = queryStr.trim().toLowerCase();
+    if (!q) return all;
+    return all.filter((r) =>
+      [r.title, r.desc, r.category, r.resourceType, ...(r.tags || [])]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  } catch (err) {
+    console.warn("Failed to search knowledge resources", err);
+    return [];
+  }
+}

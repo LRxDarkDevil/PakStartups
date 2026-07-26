@@ -1,9 +1,11 @@
 "use client";
 
-import { motion, useScroll, useTransform, type Variants } from "framer-motion";
+import { motion, type Variants, useReducedMotion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import FounderStoriesSection from "@/components/home/FounderStoriesSection";
-import { useRef } from "react";
+import { useState } from "react";
+import posthog from "posthog-js";
 
 const features = [
   {
@@ -59,22 +61,22 @@ const features = [
 const community = [
   {
     icon: "forum",
-    title: "Reddit",
-    desc: "Raw, unfiltered discussions, AMAs, and feedback on r/PakStartups.",
-    cta: "Join Subreddit",
-    href: "https://reddit.com/r/PakStartups",
+    title: "Discord Community",
+    desc: "Join Pakistan's premier startup Discord for real-time discussions, co-founder chats, and tech events.",
+    cta: "Join Discord Server",
+    href: "https://discord.gg/pakstartups",
   },
   {
     icon: "chat",
     title: "Help Center",
-    desc: "Find answers, contribution guides, and support.",
+    desc: "Find answers, contribution guides, and platform support.",
     cta: "Open FAQ",
     href: "/faq",
   },
   {
     icon: "public",
-    title: "Email Support",
-    desc: "Direct line to the PakStartups team for partnerships.",
+    title: "Email & Support",
+    desc: "Direct line to the PakStartups team for strategic partnerships.",
     cta: "Contact Us",
     href: "mailto:hello@pakstartups.org",
   },
@@ -85,357 +87,159 @@ const containerVariants: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.1,
+      staggerChildren: 0.12,
+      delayChildren: 0.05,
     },
   },
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 30, scale: 0.9 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 100, damping: 15 } },
-};
-
-const float1: Variants = {
-  animate: {
-    y: [0, -12, 0],
-    rotate: [-1, 1, -1],
-    transition: {
-      duration: 6,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
-
-const float2: Variants = {
-  animate: {
-    y: [-8, 8, -8],
-    rotate: [1, -1, 1],
-    transition: {
-      duration: 5,
-      repeat: Infinity,
-      ease: "easeInOut",
-      delay: 0.5
-    }
-  }
-};
-
-const float3: Variants = {
-  animate: {
-    y: [4, -8, 4],
-    rotate: [-0.5, 0.5, -0.5],
-    transition: {
-      duration: 7,
-      repeat: Infinity,
-      ease: "easeInOut",
-      delay: 1
-    }
-  }
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
 };
 
 export default function HomePageClient() {
-  const containerRef = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"]
-  });
-  
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
-  const opacity1 = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const shouldReduceMotion = useReducedMotion();
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      posthog.capture("homepage_search_execute", { query: searchQuery.trim() });
+      router.push(`/startups?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      router.push("/startups");
+    }
+  };
 
   return (
-    <div className="bg-[#e8ffee] text-[#002112] min-h-screen selection:bg-[#b1f0ce] selection:text-[#002114] overflow-hidden" ref={containerRef}>
-      
-      {/* Dynamic Grid Background - Animated Layers */}
+    <div className="bg-[#e8ffee] text-[#002112] min-h-screen selection:bg-[#b1f0ce] selection:text-[#002114] overflow-hidden">
+      {/* Calm Ambient Background Grid */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        {/* Base Grid - slow diagonal drift */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,82,56,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,82,56,0.12)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_85%_75%_at_50%_0%,#000_70%,transparent_100%)] animate-grid-slow" />
-        
-        {/* Radial Pulse - breathing glow from center */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-[60vw] h-[60vw] rounded-full bg-[radial-gradient(circle,rgba(15,82,56,0.08)_0%,transparent_70%)] animate-grid-pulse" />
-        </div>
-
-        {/* Scan Line - horizontal beam sweeping down */}
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#0f5238]/25 to-transparent animate-scan-line" />
-
-        {/* Shimmer Dots - pulsing at grid intersections */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_1.5px_at_center,rgba(15,82,56,0.2)_0%,transparent_100%)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_40%,transparent_100%)] animate-shimmer-dots" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,82,56,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,82,56,0.08)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_85%_75%_at_50%_0%,#000_70%,transparent_100%)]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[70vw] h-[400px] bg-emerald-200/30 rounded-full blur-[140px]" />
       </div>
 
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-16 md:pt-16 md:pb-20 px-6 lg:px-8 z-10 flex items-center justify-center min-h-[80vh] overflow-hidden">
-        {/* Glow Orbs - Larger, brighter for SaaS styling, but keeping light mode theme */}
-        <motion.div 
-          className="absolute top-1/4 left-1/3 w-[50vw] h-[50vw] bg-[#a8e7c5]/50 rounded-full blur-[120px] pointer-events-none -z-10"
-          animate={{ 
-            x: [0, 80, -80, 0], 
-            y: [0, -60, 60, 0],
-            scale: [1, 1.2, 0.9, 1],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div 
-          className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] bg-[#b1f0ce]/40 rounded-full blur-[100px] pointer-events-none -z-10"
-          animate={{ 
-            x: [0, -80, 80, 0], 
-            y: [0, 80, -80, 0],
-            scale: [1, 0.9, 1.1, 1] 
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center relative z-10">
-          
-          {/* Left Column: Headline and Badges */}
-          <motion.div 
-            className="lg:col-span-7 flex flex-col justify-center text-left"
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-            style={{ y: y1, opacity: opacity1 }}
+      {/* Hero Section: Centered Discovery Search */}
+      <section className="relative pt-16 pb-20 md:pt-24 md:pb-28 px-6 lg:px-8 z-10 flex flex-col items-center justify-center min-h-[70vh]">
+        <motion.div
+          className="max-w-4xl mx-auto text-center flex flex-col items-center"
+          initial={shouldReduceMotion ? false : "hidden"}
+          animate="visible"
+          variants={containerVariants}
+        >
+          {/* Ecosystem Badge */}
+          <motion.div
+            variants={itemVariants}
+            className="inline-flex items-center gap-2 bg-[#d5fde2] border border-[#a8e7c5] text-[#0f5238] px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider mb-6 shadow-sm"
           >
-            {/* Live Badge */}
-            <motion.div
-              variants={itemVariants}
-              className="inline-flex items-center gap-2 bg-[#d5fde2] border border-[#a8e7c5] text-[#0f5238] px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider mb-6 w-fit shadow-sm"
-              whileHover={{ scale: 1.05, y: -2 }}
-            >
-              <span className="material-symbols-outlined text-sm animate-pulse">hub</span>
-              Pakistan&apos;s Startup Network
-            </motion.div>
-
-            <motion.h1 
-              variants={itemVariants} 
-              className="text-4xl leading-[1.1] sm:text-5xl md:text-6xl lg:text-[3.5rem] xl:text-[4.2rem] font-black tracking-tight mb-6 text-[#002112]"
-            >
-              Pakistan&apos;s Startup Ecosystem,{" "}
-              <br className="hidden sm:block" />
-              <span className="relative inline-block text-[#0f5238]">
-                All in One Place.
-                <motion.div 
-                  className="absolute bottom-1 sm:bottom-2 left-0 w-full h-3 bg-[#b1f0ce] -z-10"
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: "100%", opacity: 1 }}
-                  transition={{ delay: 0.8, duration: 1.2, type: "spring", stiffness: 50 }}
-                />
-              </span>
-            </motion.h1>
-            
-            <motion.p 
-              variants={itemVariants} 
-              className="text-[#404943] text-lg md:text-xl max-w-xl leading-relaxed mb-8 font-semibold"
-            >
-              Stop searching across fragmented networks. PakStartups is the central hub to discover local startups, find your technical or co-founder partner, and claim exclusive B2B deals.
-            </motion.p>
-            
-            <motion.div 
-              variants={itemVariants} 
-              className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mb-10"
-            >
-              <Link
-                href="/startups"
-                className="group relative inline-flex items-center justify-center gap-3 bg-[#0f5238] text-white px-8 py-4 rounded-xl font-bold text-lg overflow-hidden w-full sm:w-auto shadow-[0_8px_30px_rgba(15,82,56,0.25)] hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5"
-              >
-                <motion.div 
-                  className="absolute inset-0 bg-white/20"
-                  initial={{ y: "100%" }}
-                  whileHover={{ y: 0 }}
-                  transition={{ duration: 0.3 }}
-                />
-                <span className="relative z-10">Explore Directory</span>
-                <motion.span 
-                  className="material-symbols-outlined text-xl relative z-10"
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  arrow_forward
-                </motion.span>
-              </Link>
-              
-              <Link
-                href="/auth/signup"
-                className="group inline-flex items-center justify-center gap-3 bg-white border-2 border-[#bfc9c1] hover:border-[#0f5238] text-[#0f5238] px-8 py-4 rounded-xl font-bold text-lg w-full sm:w-auto shadow-sm hover:shadow-xl transition-all hover:bg-[#cff7dd]/30 hover:-translate-y-0.5"
-              >
-                Join Community
-              </Link>
-            </motion.div>
-
-            {/* Core Pillars Feature Badges */}
-            <motion.div 
-              variants={itemVariants} 
-              className="grid grid-cols-2 gap-4 border-t border-[#0f5238]/10 pt-8 max-w-lg w-full"
-            >
-              {[
-                { icon: "list_alt", title: "Startup Directory", desc: "Discover vetted startups", href: "/startups" },
-                { icon: "handshake", title: "Co-Founder Match", desc: "Connect with building partners", href: "/match" },
-                { icon: "storefront", title: "B2B Marketplace", desc: "SaaS & infrastructure deals", href: "/b2b" },
-                { icon: "menu_book", title: "Knowledge Hub", desc: "Legal & pitch templates", href: "/knowledge" }
-              ].map((badge) => (
-                <Link 
-                  key={badge.title}
-                  href={badge.href}
-                  className="flex items-start gap-3 p-2 rounded-xl hover:bg-[#d5fde2]/40 transition-colors group cursor-pointer"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-[#d5fde2] flex items-center justify-center text-[#0f5238] group-hover:scale-110 transition-transform">
-                    <span className="material-symbols-outlined text-xl">{badge.icon}</span>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-[#002112] group-hover:text-[#0f5238] transition-colors">{badge.title}</h4>
-                    <p className="text-xs text-[#707973] font-medium">{badge.desc}</p>
-                  </div>
-                </Link>
-              ))}
-            </motion.div>
+            <span className="material-symbols-outlined text-sm">hub</span>
+            Pakistan&apos;s Startup Network
           </motion.div>
 
-          {/* Right Column: Interactive SaaS Mock Dashboard Visual */}
-          <div className="lg:col-span-5 relative flex items-center justify-center w-full mt-10 lg:mt-0 lg:min-h-[520px]">
-            {/* Glow backing */}
-            <div className="absolute w-[300px] h-[300px] bg-[#a8e7c5] rounded-full blur-[80px] opacity-30 -z-10 pointer-events-none hidden lg:block" />
-            
-            {/* Interactive Dashboard Area */}
-            <div className="relative w-full max-w-[420px] lg:max-w-none flex flex-col gap-5 lg:block lg:h-full lg:min-h-[460px]">
-              
-              {/* Card 1: Startup Directory Card */}
-              <motion.div 
-                className="relative lg:absolute lg:top-0 lg:left-0 z-20 bg-white/95 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_15px_35px_rgba(0,0,0,0.08)] rounded-2xl p-4 w-full sm:w-[280px] mx-auto lg:mx-0 lg:scale-90 xl:scale-100 origin-top-left"
-                variants={float1}
-                animate="animate"
-                whileHover={{ scale: 1.05, zIndex: 50, boxShadow: "0 25px 50px -12px rgba(15,82,56,0.18)", borderColor: "#0f5238" }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-[#0f5238]">
-                      <span className="material-symbols-outlined text-xl">payments</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-bold text-sm text-[#002112]">PayEasy</span>
-                        <span className="material-symbols-outlined text-xs text-emerald-600 fill-1">verified</span>
-                      </div>
-                      <p className="text-[10px] font-semibold text-[#707973]">Fintech • Lahore</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] bg-[#d5fde2] text-[#0f5238] px-2 py-0.5 rounded-full font-black">Pre-Seed</span>
-                </div>
-                <p className="text-xs text-[#404943] leading-normal mt-3">
-                  Next-generation billing and local payment API infrastructure for startups in PK.
-                </p>
-                <div className="mt-4 flex items-center justify-between bg-[#f4fff7] rounded-xl p-2.5 border border-[#d5fde2]">
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-emerald-600 text-base font-black animate-bounce">trending_up</span>
-                    <span className="text-xs font-black text-[#0f5238]">+38% MoM</span>
-                  </div>
-                  {/* Miniature Sparkline */}
-                  <div className="flex items-end gap-1 h-6">
-                    <div className="w-1.5 bg-emerald-200 h-2 rounded-t" />
-                    <div className="w-1.5 bg-emerald-200 h-3 rounded-t" />
-                    <div className="w-1.5 bg-emerald-300 h-2.5 rounded-t" />
-                    <div className="w-1.5 bg-emerald-400 h-4.5 rounded-t" />
-                    <div className="w-1.5 bg-[#0f5238] h-6 rounded-t" />
-                  </div>
-                </div>
-                <div className="mt-3.5 flex gap-1.5">
-                  <span className="text-[10px] bg-[#f0f3f1] text-[#404943] px-2 py-0.5 rounded font-bold">API</span>
-                  <span className="text-[10px] bg-[#f0f3f1] text-[#404943] px-2 py-0.5 rounded font-bold">B2B</span>
-                </div>
-              </motion.div>
+          {/* Main Headline */}
+          <motion.h1
+            variants={itemVariants}
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6 text-[#002112] leading-[1.1]"
+          >
+            Discover Pakistan&apos;s High-Growth{" "}
+            <span className="relative inline-block text-[#0f5238]">
+              Tech Startups
+              <span className="absolute bottom-1 left-0 w-full h-3 bg-[#b1f0ce] -z-10 rounded" />
+            </span>
+          </motion.h1>
 
-              {/* Card 2: Founder Matchmaking Card */}
-              <motion.div 
-                className="relative lg:absolute lg:top-28 lg:right-2 z-30 bg-white/95 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_20px_45px_rgba(0,0,0,0.1)] rounded-2xl p-4 w-full sm:w-[270px] mx-auto lg:mx-0 lg:scale-90 xl:scale-100 origin-top-right"
-                variants={float2}
-                animate="animate"
-                whileHover={{ scale: 1.05, zIndex: 50, boxShadow: "0 25px 50px -12px rgba(15,82,56,0.18)", borderColor: "#0f5238" }}
-              >
-                <div className="text-[10px] font-black uppercase tracking-wider text-blue-600 mb-2.5 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
-                  CTO Match suggestion
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                    ZR
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-[#002112]">Zainab Raza</h4>
-                    <p className="text-[10px] font-semibold text-[#707973]">Full-Stack Lead • Karachi</p>
-                  </div>
-                </div>
-                <div className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold mt-3 w-fit">
-                  Looking for: Co-Founder & CEO
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {["React", "NodeJS", "AI Integrations"].map((s) => (
-                    <span key={s} className="text-[9px] bg-blue-50/50 text-blue-700 px-1.5 py-0.5 rounded font-bold border border-blue-100">{s}</span>
-                  ))}
-                </div>
-                <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400 font-semibold">96% Skills Match</span>
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all active:scale-95 shadow-md">
-                    Connect
-                    <span className="material-symbols-outlined text-[10px] fill-1">send</span>
-                  </button>
-                </div>
-              </motion.div>
+          {/* Subtitle */}
+          <motion.p
+            variants={itemVariants}
+            className="text-[#404943] text-lg sm:text-xl max-w-2xl leading-relaxed mb-10 font-semibold"
+          >
+            Search hundreds of verified local startups, research founding teams, and discover investment and growth opportunities.
+          </motion.p>
 
-              {/* Card 3: B2B Deal Card */}
-              <motion.div 
-                className="relative lg:absolute lg:bottom-0 lg:left-8 z-40 bg-white/97 backdrop-blur-md border border-[#bfc9c1]/40 shadow-[0_15px_30px_rgba(0,0,0,0.08)] rounded-2xl p-4 w-full sm:w-[250px] mx-auto lg:mx-0 lg:scale-90 xl:scale-100 origin-bottom-left"
-                variants={float3}
-                animate="animate"
-                whileHover={{ scale: 1.05, zIndex: 50, boxShadow: "0 25px 50px -12px rgba(15,82,56,0.18)", borderColor: "#0f5238" }}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600">
-                    <span className="material-symbols-outlined text-sm">gavel</span>
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-[#707973]">Incorporation Partner</span>
-                </div>
-                <div className="flex items-baseline justify-between mt-1">
-                  <div>
-                    <div className="text-2xl font-black text-amber-600 leading-none">Rs. 15,000</div>
-                    <div className="text-[9px] text-[#707973] font-semibold mt-0.5">SECP Registration & Tax Setup</div>
-                  </div>
-                  <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200/50 px-2 py-0.5 rounded font-black">30% OFF</span>
-                </div>
-                <div className="mt-3.5 pt-3.5 border-t border-dashed border-gray-150 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400 font-semibold">TaxFast PK</span>
-                  <span className="text-[10px] text-[#0f5238] font-black flex items-center gap-0.5 cursor-pointer hover:underline">
-                    Claim Deal
-                    <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                  </span>
-                </div>
-              </motion.div>
-              
-            </div>
-          </div>
+          {/* URL-Backed Search Input */}
+          <motion.div variants={itemVariants} className="w-full max-w-2xl mb-6">
+            <form onSubmit={handleSearchSubmit} className="w-full">
+              <div className="relative flex items-center bg-white border-2 border-[#a8e7c5] focus-within:border-[#0f5238] focus-within:ring-4 focus-within:ring-[#0f5238]/10 rounded-2xl p-2 shadow-xl transition-all">
+                <span className="material-symbols-outlined text-[#0f5238] text-2xl ml-3 mr-2">search</span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search startups by name, industry (Fintech, AI, SaaS), or city..."
+                  className="w-full bg-transparent text-[#002112] text-base sm:text-lg font-medium outline-none placeholder-[#707973] py-2 px-1"
+                  aria-label="Search startups"
+                />
+                <button
+                  type="submit"
+                  className="bg-[#0f5238] hover:bg-[#0b3d29] text-white px-6 py-3 rounded-xl font-bold text-sm sm:text-base flex items-center gap-2 transition-all shadow-md shrink-0 cursor-pointer"
+                >
+                  <span>Search</span>
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                </button>
+              </div>
+            </form>
+          </motion.div>
 
-        </div>
+          {/* Quick Search Suggestions */}
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-wrap items-center justify-center gap-2 text-xs font-semibold text-[#404943] mb-10"
+          >
+            <span className="text-[#707973]">Popular filters:</span>
+            {["Fintech", "AI & SaaS", "Pre-Seed", "Lahore", "Karachi", "Agritech"].map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => {
+                  setSearchQuery(tag);
+                  posthog.capture("homepage_search_chip_click", { tag });
+                  router.push(`/startups?search=${encodeURIComponent(tag)}`);
+                }}
+                className="bg-white hover:bg-[#d5fde2] text-[#0f5238] px-3.5 py-1.5 rounded-full border border-[#a8e7c5] transition-all cursor-pointer shadow-sm"
+              >
+                {tag}
+              </button>
+            ))}
+          </motion.div>
+
+          {/* Action CTAs */}
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <Link
+              href="/startups"
+              onClick={() => posthog.capture("homepage_explore_directory_click", { source: "hero_cta" })}
+              className="inline-flex items-center justify-center gap-3 bg-[#0f5238] text-white px-8 py-4 rounded-xl font-bold text-lg shadow-[0_8px_30px_rgba(15,82,56,0.2)] hover:shadow-2xl transition-all hover:-translate-y-0.5"
+            >
+              <span>Explore All Startups</span>
+              <span className="material-symbols-outlined text-xl">arrow_forward</span>
+            </Link>
+
+            <Link
+              href="/startups/submit"
+              className="inline-flex items-center justify-center gap-3 bg-white border-2 border-[#bfc9c1] hover:border-[#0f5238] text-[#0f5238] px-8 py-4 rounded-xl font-bold text-lg shadow-sm hover:shadow-xl transition-all hover:bg-[#cff7dd]/30 hover:-translate-y-0.5"
+            >
+              Submit Your Startup
+            </Link>
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* Feature Grid / What We Do */}
-      <section className="relative py-24 md:py-32 px-6 lg:px-8 z-10 bg-[#f4fff7]/80 backdrop-blur-2xl border-t border-[#dbeee2]">
+      {/* Feature Grid / Core Ecosystem Infrastructure */}
+      <section className="relative py-20 md:py-28 px-6 lg:px-8 z-10 bg-[#f4fff7]/90 backdrop-blur-xl border-t border-[#dbeee2]">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
-            className="mb-16 md:mb-24"
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
+          <motion.div
+            className="mb-14 md:mb-20 text-center max-w-3xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center gap-4 mb-6">
-              <motion.div 
-                className="w-12 h-1 bg-[#0f5238]"
-                initial={{ width: 0 }}
-                whileInView={{ width: 48 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              />
-              <p className="text-[#0f5238] font-black uppercase tracking-[0.2em] text-sm">Ecosystem Infrastructure</p>
-            </div>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight text-[#002112] max-w-3xl">
-              Everything you need to scale, <span className="text-gray-400">zero friction.</span>
+            <p className="text-[#0f5238] font-black uppercase tracking-[0.2em] text-xs sm:text-sm mb-3">
+              Ecosystem Features
+            </p>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight text-[#002112]">
+              Built for Pakistan&apos;s Builders &amp; Investors
             </h2>
           </motion.div>
 
@@ -443,46 +247,25 @@ export default function HomePageClient() {
             {features.map((f, i) => (
               <motion.div
                 key={f.title}
-                className={`group relative bg-white border border-[#dbeee2] rounded-3xl p-8 overflow-hidden shadow-sm flex flex-col h-full ${f.borderHover}`}
-                initial={{ opacity: 0, y: 50 }}
+                className={`group relative bg-white border border-[#dbeee2] rounded-3xl p-8 shadow-sm flex flex-col h-full ${f.borderHover} transition-all duration-300 hover:shadow-xl hover:-translate-y-1`}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: i * 0.15, duration: 0.6, type: "spring", bounce: 0.4 }}
-                whileHover={{ 
-                  y: -15, 
-                  scale: 1.02,
-                  boxShadow: "0 20px 40px -10px rgba(15,82,56,0.15)"
-                }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
               >
-                {/* Hover Gradient Background */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${f.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                
                 <div className="relative z-10 flex flex-col flex-grow">
-                  <motion.div 
-                    className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 border border-white/50 transition-colors duration-300 ${f.iconBg} text-[#0f5238]`}
-                    whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <span className="material-symbols-outlined text-4xl">{f.icon}</span>
-                  </motion.div>
-                  <h3 className={`text-2xl font-bold text-[#002112] mb-4 transition-colors ${f.textHover}`}>{f.title}</h3>
-                  <p className="text-[#404943] text-sm md:text-base leading-relaxed flex-grow">
-                    {f.desc}
-                  </p>
-                  
-                  <div className="pt-8 mt-auto">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 border border-white/50 ${f.iconBg} text-[#0f5238]`}>
+                    <span className="material-symbols-outlined text-3xl">{f.icon}</span>
+                  </div>
+                  <h3 className={`text-xl font-bold text-[#002112] mb-3 transition-colors ${f.textHover}`}>{f.title}</h3>
+                  <p className="text-[#404943] text-sm leading-relaxed flex-grow">{f.desc}</p>
+                  <div className="pt-6 mt-auto">
                     <Link
                       href={f.href}
-                      className={`text-sm font-bold uppercase tracking-widest flex items-center gap-2 transition-colors text-gray-500 ${f.textHover}`}
+                      className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-gray-500 ${f.textHover}`}
                     >
                       {f.cta}
-                      <motion.span 
-                        className="material-symbols-outlined text-sm"
-                        initial={{ x: 0 }}
-                        whileHover={{ x: 5 }}
-                      >
-                        arrow_forward
-                      </motion.span>
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </Link>
                   </div>
                 </div>
@@ -492,85 +275,44 @@ export default function HomePageClient() {
         </div>
       </section>
 
-      {/* Founder Stories Integration */}
+      {/* Founder Stories Section */}
       <div className="relative z-10 bg-[#e8ffee]">
         <FounderStoriesSection />
       </div>
 
       {/* Community Section */}
-      <section className="relative py-32 px-6 lg:px-8 z-10 bg-[#0f5238] text-white overflow-hidden">
-        {/* Dynamic Background */}
-        <motion.div 
-          className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-[#2d6a4f] via-[#0f5238] to-[#0f5238] -z-10"
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-
+      <section className="relative py-24 px-6 lg:px-8 z-10 bg-[#0f5238] text-white overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
-            className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20"
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, type: "spring" }}
-          >
-            <div className="max-w-2xl">
-              <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-6">
-                Join the Network
-              </h2>
-              <p className="text-xl text-[#a8e7c5]">
-                A highly active community of builders, operators, and investors shaping the next decade of tech in Pakistan.
-              </p>
-            </div>
-            <div className="hidden md:block">
-              <motion.div 
-                className="w-24 h-24 rounded-full border-2 border-[#a8e7c5]/30 flex items-center justify-center bg-[#a8e7c5]/5"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <span className="material-symbols-outlined text-[#a8e7c5] text-4xl">diversity_3</span>
-              </motion.div>
-            </div>
-          </motion.div>
+          <div className="max-w-2xl mb-16">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+              Join the Network
+            </h2>
+            <p className="text-lg text-[#a8e7c5]">
+              A highly active community of builders, operators, and investors shaping tech in Pakistan.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {community.map((c, i) => (
-              <motion.a
+            {community.map((c) => (
+              <a
                 key={c.title}
                 href={c.href}
-                className="group relative bg-[#2d6a4f] border border-[#2d6a4f] p-8 rounded-3xl transition-all duration-300 flex flex-col overflow-hidden"
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2, duration: 0.6, type: "spring", bounce: 0.4 }}
-                whileHover={{ 
-                  y: -10,
-                  backgroundColor: "#a8e7c5",
-                }}
+                className="group relative bg-[#2d6a4f] border border-[#2d6a4f] p-8 rounded-3xl transition-all duration-300 flex flex-col hover:bg-[#a8e7c5]"
               >
-                <div className="flex justify-between items-start mb-8 relative z-10">
-                  <motion.div 
-                    className="text-white group-hover:text-[#002112] transition-colors"
-                    whileHover={{ scale: 1.2, rotate: 10 }}
-                  >
-                    <span className="material-symbols-outlined text-5xl">
-                      {c.icon}
-                    </span>
-                  </motion.div>
-                  <motion.span 
-                    className="material-symbols-outlined text-[#a8e7c5] group-hover:text-[#002112] transition-colors text-2xl"
-                    initial={{ opacity: 0.5 }}
-                    whileHover={{ opacity: 1, x: 5, y: -5 }}
-                  >
+                <div className="flex justify-between items-start mb-6">
+                  <div className="text-white group-hover:text-[#002112] transition-colors">
+                    <span className="material-symbols-outlined text-4xl">{c.icon}</span>
+                  </div>
+                  <span className="material-symbols-outlined text-[#a8e7c5] group-hover:text-[#002112] transition-colors text-xl">
                     arrow_outward
-                  </motion.span>
+                  </span>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-[#002112] transition-colors relative z-10">{c.title}</h3>
-                <p className="text-[#a8e7c5]/80 mb-8 flex-grow group-hover:text-[#002112]/80 transition-colors relative z-10">{c.desc}</p>
-                <div className="inline-flex items-center gap-2 text-white font-bold uppercase tracking-wider text-xs group-hover:text-[#002112] transition-colors relative z-10">
+                <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#002112] transition-colors">{c.title}</h3>
+                <p className="text-[#a8e7c5]/80 text-sm mb-6 flex-grow group-hover:text-[#002112]/80 transition-colors">{c.desc}</p>
+                <div className="inline-flex items-center gap-2 text-white font-bold uppercase tracking-wider text-xs group-hover:text-[#002112] transition-colors">
                   {c.cta}
                 </div>
-              </motion.a>
+              </a>
             ))}
           </div>
         </div>

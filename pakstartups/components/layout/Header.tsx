@@ -8,12 +8,11 @@ import { useAuth } from "@/lib/context/AuthContext";
 import { logout } from "@/lib/firebase/auth";
 
 const navLinks = [
-  { label: "Directory", href: "/startups" },
+  { label: "Startup Directory", href: "/startups" },
+  { label: "Find Co-Founder", href: "/match" },
   { label: "Ecosystem", href: "/ecosystem" },
-  { label: "Matchmaking", href: "/match" },
-  { label: "B2B", href: "/b2b" },
+  { label: "B2B Deals & Perks", href: "/b2b" },
   { label: "Knowledge Hub", href: "/knowledge" },
-  { label: "Blog", href: "/blog" },
   { label: "Events", href: "/events" },
 ];
 

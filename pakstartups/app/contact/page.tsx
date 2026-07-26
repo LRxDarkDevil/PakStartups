@@ -31,12 +31,12 @@ export default function ContactPage() {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db, "supportMessages"), {
-        name: name.trim(),
-        email: email.trim(),
-        message: message.trim(),
-        createdAt: serverTimestamp(),
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), message: message.trim() }),
       });
+      if (!res.ok) throw new Error("API request failed");
       setSubmitted(true);
       setName("");
       setEmail("");

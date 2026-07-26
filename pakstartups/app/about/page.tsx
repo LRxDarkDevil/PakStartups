@@ -86,71 +86,58 @@ export default function AboutPage() {
             PakStartups is managed by a diverse team of operators, developers, and tech enthusiasts who have built, scaled, and navigated the complexities of the Pakistani market firsthand.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Team Member 1 */}
-            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.12)] transition-shadow group flex flex-col items-center text-center">
-              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
-                <Image src="/images/image-004.jpg" alt="Ahmed Raza" width={128} height={128} className="w-full h-full object-cover" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {/* Leadership 1 */}
+            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-xl transition-shadow flex flex-col items-center text-center border border-[#e8f5ee]">
+              <div className="w-24 h-24 rounded-full mb-4 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center text-[#0f5238] font-black text-2xl">
+                MT
               </div>
-              <h3 className="font-extrabold text-[#002112] text-xl">Ahmed Raza</h3>
-              <p className="text-[#0f5238] font-bold text-sm mb-3">Founder & Architect</p>
+              <h3 className="font-extrabold text-[#002112] text-xl">Muhammad Taha</h3>
+              <p className="text-[#0f5238] font-bold text-sm mb-3">Technical Lead & Architect</p>
               <p className="text-[#707973] text-sm leading-relaxed mb-5">
-                Passionate about scaling digital infrastructure for emerging markets.
+                Leading software architecture, platform engineering, and technical roadmap delivery across PakStartups.
               </p>
-              <div className="mt-auto flex gap-3">
-                <a href="https://linkedin.com/company/pakstartups" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#2d6a4f] flex items-center justify-center hover:bg-[#0f5238] hover:text-white transition-colors" aria-label="LinkedIn">
-                  <span className="material-symbols-outlined text-sm">link</span>
-                </a>
-                <a href="mailto:hello@pakstartups.org" className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#2d6a4f] flex items-center justify-center hover:bg-[#0f5238] hover:text-white transition-colors" aria-label="Email">
-                  <span className="material-symbols-outlined text-sm">alternate_email</span>
-                </a>
-              </div>
             </div>
 
-            {/* Team Member 2 */}
-            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.12)] transition-shadow group flex flex-col items-center text-center">
-              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
-                <Image src="/images/image-045.jpg" alt="Fatima Tariq" width={128} height={128} className="w-full h-full object-cover" />
+            {/* Leadership 2 */}
+            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-xl transition-shadow flex flex-col items-center text-center border border-[#e8f5ee]">
+              <div className="w-24 h-24 rounded-full mb-4 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center text-[#0f5238] font-black text-2xl">
+                SL
               </div>
-              <h3 className="font-extrabold text-[#002112] text-xl">Fatima Tariq</h3>
-              <p className="text-[#0f5238] font-bold text-sm mb-3">Head of Community</p>
+              <h3 className="font-extrabold text-[#002112] text-xl">Administration Lead</h3>
+              <p className="text-[#0f5238] font-bold text-sm mb-3">Community & Operations Lead</p>
               <p className="text-[#707973] text-sm leading-relaxed mb-5">
-                Connecting the dots between founders, investors, and talent.
+                Directing strategic ecosystem partnerships, community operations, and founder support workflows.
               </p>
-              <div className="mt-auto flex gap-3">
-                <a href="https://reddit.com/r/PakStartups" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-[#f5faf6] text-[#2d6a4f] flex items-center justify-center hover:bg-[#0f5238] hover:text-white transition-colors" aria-label="Reddit">
-                  <span className="material-symbols-outlined text-sm">link</span>
-                </a>
-              </div>
             </div>
 
-            {/* Team Member 3 */}
-            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-[0_12px_40px_rgba(15,82,56,0.12)] transition-shadow group flex flex-col items-center text-center">
-              <div className="w-32 h-32 rounded-full mb-6 bg-[#d5fde2] border-4 border-[#b1f0ce] overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
-                <Image src="/images/image-040.jpg" alt="The Community" width={128} height={128} className="w-full h-full object-cover" />
+            {/* Leadership 3 */}
+            <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgba(15,82,56,0.06)] hover:shadow-xl transition-shadow flex flex-col items-center text-center border border-[#e8f5ee]">
+              <div className="w-24 h-24 rounded-full mb-4 bg-[#d5fde2] border-4 border-[#b1f0ce] flex items-center justify-center text-[#0f5238] font-black text-2xl">
+                J
               </div>
-              <h3 className="font-extrabold text-[#002112] text-xl">The Community</h3>
-              <p className="text-[#0f5238] font-bold text-sm mb-3">Volunteers & Contributors</p>
+              <h3 className="font-extrabold text-[#002112] text-xl">Javad</h3>
+              <p className="text-[#0f5238] font-bold text-sm mb-3">Growth & Ecosystem Advisor</p>
               <p className="text-[#707973] text-sm leading-relaxed mb-5">
-                Dozens of open-source contributors and community volunteers.
+                Guiding ecosystem expansion, investor relations, and strategic growth initiatives for local startups.
               </p>
-              <div className="mt-auto flex gap-3">
-                <Link href="/volunteer" className="text-xs font-bold text-[#0f5238] uppercase tracking-wider hover:underline">
-                  Join Them →
-                </Link>
-              </div>
             </div>
+          </div>
 
-            {/* Open Role */}
-            <div className="bg-[#e8ffee] border-2 border-dashed border-[#b1f0ce] rounded-3xl p-6 hover:border-[#0f5238] hover:bg-[#d5fde2] transition-colors group flex flex-col items-center justify-center text-center cursor-pointer">
-              <div className="w-20 h-20 rounded-full mb-4 bg-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-3xl text-[#0f5238]">add</span>
-              </div>
-              <h3 className="font-extrabold text-[#0f5238] text-lg mb-2">Join the Mission</h3>
-              <p className="text-[#404943] text-sm leading-relaxed">
-                We are always looking for passionate builders.
+          {/* Separate Volunteer & Contributor Banner */}
+          <div className="bg-[#d5fde2] border border-[#a8e7c5] rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
+            <div>
+              <h3 className="text-2xl font-black text-[#002112] mb-2">Volunteers & Open Source Mentors</h3>
+              <p className="text-[#404943] text-sm max-w-xl">
+                Our active network includes dozens of community volunteers, skill mentors, and open-source contributors supporting founders across Pakistan.
               </p>
             </div>
+            <Link
+              href="/volunteer"
+              className="bg-[#0f5238] hover:bg-[#2d6a4f] text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shrink-0"
+            >
+              Explore Volunteer Roster & Apply →
+            </Link>
           </div>
         </div>
       </section>

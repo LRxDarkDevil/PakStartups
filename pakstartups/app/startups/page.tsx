@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getStartups, type Startup } from "@/lib/services/startups";
@@ -35,15 +36,40 @@ const FILTERS = ["All Startups", "Recently Added", "Trending", "By Industry"];
 const STAGES = ["All Stages", "Idea", "MVP", "Growth", "Scaling"];
 
 export default function StartupsPage() {
-  const [activeFilter, setActiveFilter] = useState("All Startups");
-  const [activeStage, setActiveStage] = useState("All Stages");
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [activeCity, setActiveCity] = useState("All Cities");
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const [activeFilter, setActiveFilter] = useState(searchParams.get("filter") ?? "All Startups");
+  const [activeStage, setActiveStage] = useState(searchParams.get("stage") ?? "All Stages");
+  const [activeCategory, setActiveCategory] = useState(searchParams.get("category") ?? "All");
+  const [activeCity, setActiveCity] = useState(searchParams.get("city") ?? "All Cities");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") ?? "");
   const [startups, setStartups] = useState<Startup[]>([]);
   const [loading, setLoading] = useState(true);
   const [cities, setCities] = useState<string[]>(DEFAULT_SITE_FILTERS.cities);
   const [categories, setCategories] = useState<string[]>(DEFAULT_SITE_FILTERS.categories);
+
+  const updateUrlParams = (params: Record<string, string>) => {
+    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    Object.entries(params).forEach(([key, val]) => {
+      if (!val || val === "All" || val === "All Startups" || val === "All Stages" || val === "All Cities") {
+        current.delete(key);
+      } else {
+        current.set(key, val);
+      }
+    });
+    const searchStr = current.toString();
+    router.replace(searchStr ? `/startups?${searchStr}` : "/startups", { scroll: false });
+  };
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get("search") ?? "");
+    setActiveFilter(searchParams.get("filter") ?? "All Startups");
+    setActiveStage(searchParams.get("stage") ?? "All Stages");
+    setActiveCategory(searchParams.get("category") ?? "All");
+    setActiveCity(searchParams.get("city") ?? "All Cities");
+  }, [searchParams]);
+
 
   useEffect(() => {
     getSiteFilters().then((filters) => {
@@ -63,14 +89,24 @@ export default function StartupsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const displayed = startups.filter((s) => {
-    if (activeCategory !== "All" && s.category !== activeCategory) return false;
-    if (activeCity !== "All Cities" && s.city !== activeCity) return false;
-    if (activeStage !== "All Stages" && s.stage !== activeStage) return false;
-    const q = searchQuery.trim().toLowerCase();
-    if (q && ![s.name, s.desc, s.category, s.city, s.stage].join(" ").toLowerCase().includes(q)) return false;
-    return true;
-  });
+  const displayed = startups
+    .filter((s) => {
+      if (activeCategory !== "All" && s.category !== activeCategory) return false;
+      if (activeCity !== "All Cities" && s.city !== activeCity) return false;
+      if (activeStage !== "All Stages" && s.stage !== activeStage) return false;
+      const q = searchQuery.trim().toLowerCase();
+      if (q && ![s.name, s.desc, s.category, s.city, s.stage, s.ownerName].join(" ").toLowerCase().includes(q)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (activeFilter === "Trending") {
+        return (b.views || 0) - (a.views || 0);
+      }
+      if (activeFilter === "By Industry") {
+        return a.category.localeCompare(b.category);
+      }
+      return 0;
+    });
 
   return (
     <>
@@ -83,13 +119,22 @@ export default function StartupsPage() {
               Discover Pakistan&apos;s most innovative startups and connect with the next generation of founders.
             </p>
           </div>
-          <Link
-            href="/startups/submit"
-            className="flex items-center gap-2 bg-[#0f5238] text-white px-8 py-4 rounded-lg font-bold shadow-[0_8px_24px_rgba(15,82,56,0.12)] hover:shadow-[0_12px_32px_rgba(15,82,56,0.2)] transition-all active:scale-95"
-          >
-            Submit Your Startup
-            <span className="material-symbols-outlined">add</span>
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/startups/nominate"
+              className="flex items-center gap-2 border-2 border-[#0f5238] text-[#0f5238] hover:bg-[#d5fde2] px-6 py-4 rounded-lg font-bold transition-all active:scale-95"
+            >
+              Nominate a Startup
+              <span className="material-symbols-outlined">recommend</span>
+            </Link>
+            <Link
+              href="/startups/submit"
+              className="flex items-center gap-2 bg-[#0f5238] text-white px-8 py-4 rounded-lg font-bold shadow-[0_8px_24px_rgba(15,82,56,0.12)] hover:shadow-[0_12px_32px_rgba(15,82,56,0.2)] transition-all active:scale-95"
+            >
+              Submit Your Startup
+              <span className="material-symbols-outlined">add</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -100,10 +145,13 @@ export default function StartupsPage() {
             {FILTERS.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveFilter(tab)}
+                onClick={() => {
+                  setActiveFilter(tab);
+                  updateUrlParams({ filter: tab });
+                }}
                 className={activeFilter === tab
-                  ? "px-6 py-2.5 rounded-full bg-[#0f5238] text-white font-bold transition-colors"
-                  : "px-6 py-2.5 rounded-full bg-[#cff7dd] text-[#002112] hover:bg-[#caf2d7] transition-colors font-semibold"}
+                  ? "px-6 py-2.5 rounded-full bg-[#0f5238] text-white font-bold transition-colors cursor-pointer"
+                  : "px-6 py-2.5 rounded-full bg-[#cff7dd] text-[#002112] hover:bg-[#caf2d7] transition-colors font-semibold cursor-pointer"}
               >
                 {tab}
               </button>

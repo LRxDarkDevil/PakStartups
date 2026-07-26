@@ -7,6 +7,13 @@ import { useAuth } from "@/lib/context/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sendConnectionRequest } from "@/lib/services/match";
+import {
+  getApprovedStartupReviews,
+  getApprovedStartupEndorsements,
+  submitReview,
+  type Review,
+  type Endorsement
+} from "@/lib/services/reviews";
 
 type Startup = {
   id: string;
@@ -33,6 +40,15 @@ export default function StartupProfilePage({ params }: { params: Promise<{ slug:
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [endorsements, setEndorsements] = useState<Endorsement[]>([]);
+  const [newRating, setNewRating] = useState(5);
+  const [newTitle, setNewTitle] = useState("");
+  const [newContent, setNewContent] = useState("");
+  const [relationship, setRelationship] = useState<Review["relationship"]>("Customer");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   useEffect(() => {
     const fetchStartup = async () => {
