@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,7 +35,7 @@ function SkeletonCard() {
 const FILTERS = ["All Startups", "Recently Added", "Trending", "By Industry"];
 const STAGES = ["All Stages", "Idea", "MVP", "Growth", "Scaling"];
 
-export default function StartupsPage() {
+function StartupsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -281,3 +281,16 @@ export default function StartupsPage() {
     </>
   );
 }
+
+export default function StartupsPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-8xl mx-auto px-8 py-16 text-center text-[#404943]">
+        <span className="inline-block w-8 h-8 border-4 border-[#0f5238]/20 border-t-[#0f5238] rounded-full animate-spin" />
+      </div>
+    }>
+      <StartupsContent />
+    </Suspense>
+  );
+}
+
