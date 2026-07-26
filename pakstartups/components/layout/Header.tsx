@@ -16,6 +16,7 @@ const navLinks = [
   // { label: "B2B Deals & Perks", href: "/b2b" },
   { label: "Knowledge Hub", href: "/knowledge" },
   { label: "Events", href: "/events" },
+  { label: "Contact Us", href: "/contact" },
 ];
 
 export default function Header() {

@@ -24,7 +24,7 @@ const communityChannels = [
     title: "Discord & Live Discussions",
     desc: "Real-time tech channels, co-founder match calls, and community AMA sessions.",
     cta: "Join Discord Server",
-    href: "https://discord.gg/pakstartups",
+    href: "https://discord.gg/v336zDnYrF",
     badge: "Live Server",
   },
 ];

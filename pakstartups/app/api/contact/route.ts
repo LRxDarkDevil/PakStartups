@@ -1,57 +1,70 @@
 import { NextResponse } from "next/server";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
 
 export async function POST(req: Request) {
   try {
-    const { name, email, message, category } = await req.json();
+    const { name, email, category, subject, message } = await req.json();
 
     if (!name || !email || !message) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Name, email, and message are required fields." },
+        { status: 400 }
+      );
     }
 
-    // 1. Store durable support message in Firestore
-    const docRef = await addDoc(collection(db, "supportMessages"), {
-      name: name.trim(),
-      email: email.trim(),
-      message: message.trim(),
-      category: category || "General Support",
-      status: "open",
-      createdAt: serverTimestamp(),
+    const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL;
+
+    if (!discordWebhookUrl || !discordWebhookUrl.trim()) {
+      console.error("DISCORD_WEBHOOK_URL is not set in environment variables.");
+      return NextResponse.json(
+        { error: "Discord webhook is not configured. Please set DISCORD_WEBHOOK_URL in .env" },
+        { status: 500 }
+      );
+    }
+
+    const ticketId = `PS-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    const payload = {
+      username: "PakStartups Contact Bot",
+      avatar_url: "https://pakstartups.org/logo.png",
+      content: `📬 **New Contact Form Submission**`,
+      embeds: [
+        {
+          title: subject ? `📌 ${subject.trim()}` : `📩 New Inquiry from ${name.trim()}`,
+          color: 0x5865f2, // Discord Blurple
+          fields: [
+            { name: "👤 Sender Name", value: name.trim(), inline: true },
+            { name: "✉️ Email Address", value: email.trim(), inline: true },
+            { name: "🏷️ Category", value: category || "General Support", inline: true },
+            ...(subject ? [{ name: "📌 Subject", value: subject.trim(), inline: false }] : []),
+            { name: "💬 Message Details", value: message.trim(), inline: false },
+          ],
+          footer: { text: `Ref: ${ticketId} • PakStartups Contact Form` },
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
+
+    const res = await fetch(discordWebhookUrl.trim(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
-    // 2. Dispatch to Discord Webhook if configured
-    const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL;
-    if (discordWebhookUrl) {
-      try {
-        await fetch(discordWebhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            embeds: [
-              {
-                title: `📩 New Support Inquiry: ${name.trim()}`,
-                color: 0x0f5238, // Emerald
-                fields: [
-                  { name: "Sender Name", value: name.trim(), inline: true },
-                  { name: "Email", value: email.trim(), inline: true },
-                  { name: "Category", value: category || "General Support", inline: true },
-                  { name: "Message", value: message.trim() },
-                ],
-                footer: { text: `Ticket ID: ${docRef.id} · PakStartups Bot` },
-                timestamp: new Date().toISOString(),
-              },
-            ],
-          }),
-        });
-      } catch (webhookErr) {
-        console.warn("Discord webhook delivery failed, message stored in Firestore", webhookErr);
-      }
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Discord Webhook delivery failed:", res.status, errText);
+      return NextResponse.json(
+        { error: `Discord Webhook delivery failed (Status ${res.status}).` },
+        { status: 502 }
+      );
     }
 
-    return NextResponse.json({ success: true, id: docRef.id });
+    return NextResponse.json({ success: true, id: ticketId });
   } catch (err) {
     console.error("Contact API error:", err);
-    return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to send message to Discord." },
+      { status: 500 }
+    );
   }
 }

@@ -19,12 +19,19 @@ const footerLinks = {
     { label: "Help / FAQ", href: "/faq" },
     { label: "Idea Validation", href: "/ideas" },
     { label: "About Us", href: "/about" },
+    { label: "Contact Us", href: "/contact" },
+  ],
+  Community: [
+    { label: "Discord Server", href: "https://discord.gg/v336zDnYrF" },
+    { label: "Subreddit (r/PakStartups)", href: "https://reddit.com/r/PakStartups" },
+    { label: "LinkedIn Page", href: "https://linkedin.com/company/pakstartups" },
+    { label: "Contact Us Form", href: "/contact" },
   ],
 };
 
 const socialLinks = [
   { icon: "forum", label: "Reddit", href: "https://reddit.com/r/PakStartups" },
-  { icon: "chat", label: "Discord", href: "https://discord.gg/pakstartups" },
+  { icon: "chat", label: "Discord", href: "https://discord.gg/v336zDnYrF" },
   { icon: "public", label: "LinkedIn", href: "https://linkedin.com/company/pakstartups" },
   { icon: "alternate_email", label: "Email", href: "mailto:hello@pakstartups.org" },
 ];
