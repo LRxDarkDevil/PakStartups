@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Pin } from "lucide-react";
 
 interface TagInputProps {
   tags: string[];
   onChange: (tags: string[]) => void;
+  pinnedTags?: string[];
+  onTogglePin?: (tag: string) => void;
   placeholder?: string;
   ariaLabel?: string;
 }
@@ -13,6 +15,8 @@ interface TagInputProps {
 export function TagInput({
   tags,
   onChange,
+  pinnedTags,
+  onTogglePin,
   placeholder = "Type and press Enter...",
   ariaLabel,
 }: TagInputProps) {
@@ -31,7 +35,11 @@ export function TagInput({
   };
 
   const removeTag = (indexToRemove: number) => {
+    const tagToRemove = tags[indexToRemove];
     onChange(tags.filter((_, index) => index !== indexToRemove));
+    if (pinnedTags && onTogglePin && pinnedTags.includes(tagToRemove)) {
+      onTogglePin(tagToRemove);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -68,25 +76,55 @@ export function TagInput({
       onClick={() => inputRef.current?.focus()}
       className="min-h-[140px] w-full p-3 bg-white border border-[#e0e0e0] rounded-xl focus-within:border-[#0f5238] focus-within:ring-2 focus-within:ring-[#0f5238]/20 transition-all flex flex-wrap content-start gap-2 cursor-text"
     >
-      {tags.map((tag, index) => (
-        <span
-          key={`${tag}-${index}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0f5238]/10 text-[#0f5238] border border-[#0f5238]/20 text-sm font-semibold rounded-full animate-fadeIn select-none group hover:bg-[#0f5238]/15 transition-colors"
-        >
-          <span>{tag}</span>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              removeTag(index);
-            }}
-            className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-[#0f5238]/20 text-[#0f5238] transition-colors focus:outline-none"
-            aria-label={`Remove tag ${tag}`}
+      {tags.map((tag, index) => {
+        const isPinned = pinnedTags ? pinnedTags.includes(tag) : false;
+        return (
+          <span
+            key={`${tag}-${index}`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-semibold rounded-full animate-fadeIn select-none group transition-all ${
+              isPinned
+                ? "bg-amber-50 text-amber-900 border border-amber-300/80 shadow-xs"
+                : "bg-[#0f5238]/10 text-[#0f5238] border border-[#0f5238]/20 hover:bg-[#0f5238]/15"
+            }`}
           >
-            <X className="w-3 h-3" />
-          </button>
-        </span>
-      ))}
+            {onTogglePin && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin(tag);
+                }}
+                title={isPinned ? "Unpin from Homepage Quick Search" : "Pin to Homepage Quick Search"}
+                className={`p-0.5 rounded-full transition-colors ${
+                  isPinned
+                    ? "text-amber-700 hover:bg-amber-200/60"
+                    : "text-[#0f5238]/60 hover:text-[#0f5238] hover:bg-[#0f5238]/20"
+                }`}
+                aria-label={`Toggle pin for tag ${tag}`}
+              >
+                <Pin className={`w-3.5 h-3.5 ${isPinned ? "fill-amber-600 rotate-45" : ""}`} />
+              </button>
+            )}
+            <span>{tag}</span>
+            {isPinned && (
+              <span className="text-[10px] uppercase font-bold tracking-wide text-amber-700 bg-amber-200/50 px-1.5 py-0.2 rounded">
+                Pinned
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTag(index);
+              }}
+              className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-black/10 text-current transition-colors focus:outline-none ml-0.5"
+              aria-label={`Remove tag ${tag}`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        );
+      })}
 
       <div className="inline-flex items-center flex-1 min-w-[160px]">
         <input

@@ -5,6 +5,7 @@ import { createCanonicalLocation, REGIONS } from "@/lib/location";
 export type SiteFilters = {
   regions: string[];
   categories: string[];
+  pinnedQuickSearch: string[];
 };
 
 export const DEFAULT_SITE_FILTERS: SiteFilters = {
@@ -19,6 +20,14 @@ export const DEFAULT_SITE_FILTERS: SiteFilters = {
     "Cleantech",
     "Logistics & Mobility",
     "Social Impact / Sustainability",
+  ],
+  pinnedQuickSearch: [
+    "FinTech",
+    "AI & SaaS",
+    "Pre-Seed",
+    "AgriTech",
+    "Lahore",
+    "Karachi",
   ],
 };
 
@@ -40,13 +49,21 @@ export async function getSiteFilters(): Promise<SiteFilters> {
   const snap = await getDoc(FILTERS_DOC);
   if (!snap.exists()) return DEFAULT_SITE_FILTERS;
 
-  const data = snap.data() as { regions?: unknown; cities?: unknown; categories?: unknown };
+  const data = snap.data() as {
+    regions?: unknown;
+    cities?: unknown;
+    categories?: unknown;
+    pinnedQuickSearch?: unknown;
+  };
   const configuredRegions = Array.isArray(data.regions)
     ? data.regions.filter((region): region is string => typeof region === "string" && region.trim().length > 0)
     : [];
   const legacyRegions = regionsFromLegacyCities(data.cities);
   const categories = Array.isArray(data.categories)
     ? data.categories.filter((category): category is string => typeof category === "string" && category.trim().length > 0)
+    : [];
+  const pinnedQuickSearch = Array.isArray(data.pinnedQuickSearch)
+    ? data.pinnedQuickSearch.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0)
     : [];
 
   return {
@@ -57,6 +74,10 @@ export async function getSiteFilters(): Promise<SiteFilters> {
           ? legacyRegions
           : DEFAULT_SITE_FILTERS.regions,
     categories: categories.length > 0 ? categories : DEFAULT_SITE_FILTERS.categories,
+    pinnedQuickSearch:
+      pinnedQuickSearch.length > 0
+        ? pinnedQuickSearch
+        : DEFAULT_SITE_FILTERS.pinnedQuickSearch,
   };
 }
 
@@ -66,6 +87,7 @@ export async function saveSiteFilters(filters: SiteFilters) {
     {
       regions: filters.regions,
       categories: filters.categories,
+      pinnedQuickSearch: filters.pinnedQuickSearch,
       updatedAt: serverTimestamp(),
     },
     { merge: true }

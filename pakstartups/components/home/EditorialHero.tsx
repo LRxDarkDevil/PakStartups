@@ -22,14 +22,30 @@ const itemVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
 };
 
-const POPULAR_TAGS = [
-  { label: "Fintech", icon: "payments" },
-  { label: "AI & SaaS", icon: "auto_awesome" },
-  { label: "Pre-Seed", icon: "rocket_launch" },
-  { label: "Agritech", icon: "agriculture" },
-  { label: "Lahore", icon: "location_city" },
-  { label: "Karachi", icon: "location_city" },
-];
+import { DEFAULT_SITE_FILTERS, getSiteFilters } from "@/lib/services/siteConfig";
+
+const TAG_ICONS: Record<string, string> = {
+  Fintech: "payments",
+  FinTech: "payments",
+  "AI & SaaS": "auto_awesome",
+  SaaS: "auto_awesome",
+  "Pre-Seed": "rocket_launch",
+  Agritech: "agriculture",
+  AgriTech: "agriculture",
+  Healthtech: "health_and_safety",
+  HealthTech: "health_and_safety",
+  EdTech: "school",
+  "E-Commerce": "shopping_cart",
+  Cleantech: "eco",
+  "Logistics & Mobility": "local_shipping",
+  Lahore: "location_city",
+  Karachi: "location_city",
+  Islamabad: "location_city",
+  Punjab: "location_city",
+  Sindh: "location_city",
+};
+
+const DEFAULT_POPULAR_TAGS = DEFAULT_SITE_FILTERS.pinnedQuickSearch;
 
 const LOOPING_PHRASES = [
   "Tech Giants",
@@ -100,8 +116,21 @@ function TypewriterHeadline() {
 
 export default function EditorialHero() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [quickSearchTags, setQuickSearchTags] = useState<string[]>(DEFAULT_POPULAR_TAGS);
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    getSiteFilters()
+      .then((filters) => {
+        if (filters.pinnedQuickSearch && filters.pinnedQuickSearch.length > 0) {
+          setQuickSearchTags(filters.pinnedQuickSearch);
+        }
+      })
+      .catch(() => {
+        setQuickSearchTags(DEFAULT_POPULAR_TAGS);
+      });
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,21 +313,24 @@ export default function EditorialHero() {
               <span className="text-[#606d64] font-bold uppercase tracking-wider text-[11px]">
                 Quick Search:
               </span>
-              {POPULAR_TAGS.map((tag) => (
-                <button
-                  key={tag.label}
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery(tag.label);
-                    posthog.capture("homepage_search_chip_click", { tag: tag.label });
-                    router.push(`/startups?search=${encodeURIComponent(tag.label)}`);
-                  }}
-                  className="inline-flex items-center gap-1.5 bg-white hover:bg-[#0f5238] hover:text-white text-[#0f5238] px-3 py-1 rounded-full border border-[#0f5238]/20 transition-all cursor-pointer shadow-xs font-semibold"
-                >
-                  <span className="material-symbols-outlined text-sm">{tag.icon}</span>
-                  <span>{tag.label}</span>
-                </button>
-              ))}
+              {quickSearchTags.map((tag) => {
+                const iconName = TAG_ICONS[tag] || "search";
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(tag);
+                      posthog.capture("homepage_search_chip_click", { tag });
+                      router.push(`/startups?search=${encodeURIComponent(tag)}`);
+                    }}
+                    className="inline-flex items-center gap-1.5 bg-white hover:bg-[#0f5238] hover:text-white text-[#0f5238] px-3 py-1 rounded-full border border-[#0f5238]/20 transition-all cursor-pointer shadow-xs font-semibold"
+                  >
+                    <span className="material-symbols-outlined text-sm">{iconName}</span>
+                    <span>{tag}</span>
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         </motion.div>
