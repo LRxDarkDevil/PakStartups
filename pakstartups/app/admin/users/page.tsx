@@ -3,21 +3,12 @@
 import { useState, useEffect } from "react";
 import {
   collection, query, orderBy, getDocs, updateDoc, doc,
-  serverTimestamp, onSnapshot, limit, startAfter,
-  type DocumentSnapshot
+  serverTimestamp, onSnapshot, limit
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-
-type PlatformUser = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-  createdAt: { toDate?: () => Date } | string | null;
-  status?: string;
-};
+import UserDetailsModal, { PlatformUserDetail } from "@/components/admin/UserDetailsModal";
 
 const roleColors: Record<string, string> = {
   admin: "bg-[#0f5238] text-white",
@@ -28,7 +19,7 @@ const roleColors: Record<string, string> = {
   mentor: "bg-[#caf2d7] text-[#0f5238]",
 };
 
-function formatDate(ts: PlatformUser["createdAt"]) {
+function formatDate(ts: PlatformUserDetail["createdAt"]) {
   if (!ts) return "–";
   const d = (ts as { toDate?: () => Date }).toDate ? (ts as { toDate: () => Date }).toDate() : new Date(ts as string);
   return d.toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" });
@@ -38,11 +29,12 @@ const ROLES = ["founder", "freelancer", "student", "investor", "mentor", "admin"
 
 function UserManagementContent() {
   const searchParams = useSearchParams();
-  const [users, setUsers] = useState<PlatformUser[]>([]);
+  const [users, setUsers] = useState<PlatformUserDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<Set<string>>(new Set());
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<PlatformUserDetail | null>(null);
 
   useEffect(() => {
     const queryParam = searchParams.get("search") || "";
@@ -55,7 +47,7 @@ function UserManagementContent() {
     setLoading(true);
     const q = query(collection(db, "users"), orderBy("createdAt", "desc"), limit(50));
     const unsub = onSnapshot(q, (snap) => {
-      setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PlatformUser));
+      setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PlatformUserDetail));
       setLoading(false);
     }, (err) => { console.error(err); setLoading(false); });
     return () => unsub();
@@ -66,6 +58,9 @@ function UserManagementContent() {
     setOpenDropdown(null);
     try {
       await updateDoc(doc(db, "users", userId), { role: newRole, updatedAt: serverTimestamp() });
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser((prev) => (prev ? { ...prev, role: newRole } : null));
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -82,7 +77,7 @@ function UserManagementContent() {
     <div className="p-8 space-y-8">
       <div className="flex flex-col gap-1">
         <h2 className="text-3xl font-extrabold text-[#002112] tracking-tight">User Management</h2>
-        <p className="text-[#404943] font-medium">Manage all platform members, their roles, and statuses.</p>
+        <p className="text-[#404943] font-medium">Manage all platform members, their roles, and statuses. Click any user to view full details.</p>
       </div>
 
       {/* Search */}
@@ -122,35 +117,65 @@ function UserManagementContent() {
               </thead>
               <tbody className="divide-y divide-[#bfc9c1]/20">
                 {filtered.map((user) => (
-                  <tr key={user.id} className="hover:bg-[#f5fbf7] transition-colors group relative">
-                    <td className="px-6 py-4 font-bold text-[#002112]">{user.fullName || "—"}</td>
+                  <tr
+                    key={user.id}
+                    onClick={() => setSelectedUser(user)}
+                    className="hover:bg-[#e8ffee]/50 transition-colors cursor-pointer group relative"
+                  >
+                    <td className="px-6 py-4 font-bold text-[#002112]">
+                      <div className="flex items-center gap-2">
+                        <span className="group-hover:text-[#0f5238] group-hover:underline transition-colors">
+                          {user.fullName || "—"}
+                        </span>
+                        <span className="material-symbols-outlined text-xs text-[#0f5238] opacity-0 group-hover:opacity-100 transition-opacity">
+                          info
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-sm text-[#404943]">{user.email || "—"}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded text-xs font-bold capitalize ${roleColors[user.role] ?? "bg-gray-100 text-gray-600"}`}>
-                        {user.role}
+                      <span className={`px-2.5 py-1 rounded text-xs font-bold capitalize ${roleColors[user.role || ""] ?? "bg-gray-100 text-gray-600"}`}>
+                        {user.role || "member"}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-[#404943]">{formatDate(user.createdAt)}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="relative inline-block">
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="relative inline-flex items-center gap-2">
                         <button
-                          onClick={() => setOpenDropdown(openDropdown === user.id ? null : user.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedUser(user);
+                          }}
+                          className="text-[#0f5238] hover:bg-[#d5fde2] px-2.5 py-1 rounded-lg text-xs font-bold transition-colors"
+                          title="View User Details"
+                        >
+                          Details
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenDropdown(openDropdown === user.id ? null : user.id);
+                          }}
                           disabled={updating.has(user.id)}
                           className="text-[#404943] hover:text-[#0f5238] p-1.5 rounded-lg transition-colors disabled:opacity-60"
+                          title="Change Role"
                         >
                           <span className="material-symbols-outlined text-[20px]">
                             {updating.has(user.id) ? "progress_activity" : "manage_accounts"}
                           </span>
                         </button>
                         {openDropdown === user.id && (
-                          <div className="absolute right-0 top-9 z-50 w-44 bg-white rounded-xl shadow-2xl border border-[#e0e0e0] overflow-hidden">
+                          <div className="absolute right-0 top-9 z-50 w-44 bg-white rounded-xl shadow-2xl border border-[#e0e0e0] overflow-hidden text-left">
                             <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-[#707973] border-b border-[#f0f0f0]">
                               Change role to
                             </p>
                             {ROLES.map((role) => (
                               <button
                                 key={role}
-                                onClick={() => handleRoleChange(user.id, role)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRoleChange(user.id, role);
+                                }}
                                 className={`w-full text-left px-4 py-2 text-sm hover:bg-[#f5faf6] capitalize transition-colors ${user.role === role ? "font-bold text-[#0f5238]" : "text-[#404943]"}`}
                               >
                                 {role}
@@ -173,6 +198,14 @@ function UserManagementContent() {
           </span>
         </div>
       </div>
+
+      {/* User Details Modal */}
+      <UserDetailsModal
+        user={selectedUser}
+        onClose={() => setSelectedUser(null)}
+        onRoleChange={handleRoleChange}
+        isUpdating={selectedUser ? updating.has(selectedUser.id) : false}
+      />
     </div>
   );
 }
@@ -184,3 +217,4 @@ export default function UserManagementPage() {
     </Suspense>
   );
 }
+

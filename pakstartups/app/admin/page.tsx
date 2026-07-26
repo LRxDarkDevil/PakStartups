@@ -6,30 +6,22 @@ import {
   updateDoc, doc, serverTimestamp, onSnapshot, limit
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-
-type PendingStartup = {
-  id: string;
-  name: string;
-  ownerName: string;
-  category: string;
-  stage: string;
-  createdAt: { toDate?: () => Date } | string | null;
-  status: string;
-};
+import StartupDetailsModal, { StartupDetail } from "@/components/admin/StartupDetailsModal";
 
 type Stat = { label: string; value: string | number; icon: string; color: string };
 
-function formatDate(ts: PendingStartup["createdAt"]) {
+function formatDate(ts: StartupDetail["createdAt"]) {
   if (!ts) return "–";
   const d = (ts as { toDate?: () => Date }).toDate ? (ts as { toDate: () => Date }).toDate() : new Date(ts as string);
   return d.toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function AdminDashboardPage() {
-  const [queue, setQueue] = useState<PendingStartup[]>([]);
+  const [queue, setQueue] = useState<StartupDetail[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<Set<string>>(new Set());
+  const [selectedStartup, setSelectedStartup] = useState<StartupDetail | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -41,7 +33,7 @@ export default function AdminDashboardPage() {
       limit(20)
     );
     const unsub = onSnapshot(q, async (snap) => {
-      setQueue(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PendingStartup));
+      setQueue(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StartupDetail));
 
       // Also pull aggregate stats
       const [allStartups, pendingSnap, eventsSnap, usersSnap] = await Promise.all([
@@ -96,7 +88,7 @@ export default function AdminDashboardPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-1">
         <h2 className="text-3xl font-extrabold text-[#002112] tracking-tight">Startup Approval Queue</h2>
-        <p className="text-[#404943] font-medium">Review pending startup submissions before they go live.</p>
+        <p className="text-[#404943] font-medium">Review pending startup submissions before they go live. Click any row to view full details.</p>
       </div>
 
       {/* Table */}
@@ -126,9 +118,20 @@ export default function AdminDashboardPage() {
               </thead>
               <tbody className="divide-y divide-[#bfc9c1]/20">
                 {queue.map((item) => (
-                  <tr key={item.id} className="hover:bg-[#f5fbf7] transition-colors">
+                  <tr
+                    key={item.id}
+                    onClick={() => setSelectedStartup(item)}
+                    className="hover:bg-[#e8ffee]/50 transition-colors cursor-pointer group"
+                  >
                     <td className="px-6 py-4">
-                      <span className="font-bold text-[#002112]">{item.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#002112] group-hover:text-[#0f5238] group-hover:underline transition-colors">
+                          {item.name}
+                        </span>
+                        <span className="material-symbols-outlined text-xs text-[#0f5238] opacity-0 group-hover:opacity-100 transition-opacity">
+                          info
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -145,17 +148,33 @@ export default function AdminDashboardPage() {
                       <span className="px-2.5 py-1 rounded bg-[#c4ecd2]/30 text-[#2b4e3b] text-xs font-bold">{item.stage}</span>
                     </td>
                     <td className="px-6 py-4 text-sm text-[#404943]">{formatDate(item.createdAt)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleApprove(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedStartup(item);
+                          }}
+                          className="text-[#0f5238] hover:bg-[#d5fde2] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                          title="View Details"
+                        >
+                          Details
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApprove(item.id);
+                          }}
                           disabled={updating.has(item.id)}
                           className="bg-[#0f5238] text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-[#2d6a4f] transition-colors disabled:opacity-60"
                         >
                           {updating.has(item.id) ? "…" : "Approve"}
                         </button>
                         <button
-                          onClick={() => handleReject(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReject(item.id);
+                          }}
                           disabled={updating.has(item.id)}
                           className="text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-60"
                         >
@@ -170,6 +189,16 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Details Modal */}
+      <StartupDetailsModal
+        startup={selectedStartup}
+        onClose={() => setSelectedStartup(null)}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        isUpdating={selectedStartup ? updating.has(selectedStartup.id) : false}
+      />
     </div>
   );
 }
+

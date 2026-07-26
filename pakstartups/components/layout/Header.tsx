@@ -20,6 +20,10 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/studio")) {
+    return null;
+  }
   const router = useRouter();
   const { user, profile, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -121,6 +125,9 @@ export default function Header() {
                   </div>
                   <div className="py-1">
                     {[
+                      ...(profile?.role === "admin"
+                        ? [{ label: "Admin Dashboard", icon: "admin_panel_settings", href: "/admin" }]
+                        : []),
                       { label: "Dashboard", icon: "dashboard", href: "/dashboard" },
                       { label: "My Profile", icon: "person", href: `/profile/${user.uid}` },
                       { label: "Settings", icon: "settings", href: "/settings" },
@@ -188,6 +195,9 @@ export default function Header() {
           <div className="pt-4 flex flex-col gap-3">
             {user ? (
               <>
+                {profile?.role === "admin" && (
+                  <Link href="/admin" onClick={() => setMobileOpen(false)} className="text-center py-3 bg-[#0f5238] text-white rounded-lg font-bold shadow-sm">Admin Dashboard</Link>
+                )}
                 <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="text-center py-3 border border-[#bfc9c1] rounded-lg text-[#0f5238] font-bold">Dashboard</Link>
                 <button onClick={handleLogout} className="py-3 bg-red-50 text-red-600 rounded-lg font-bold">Sign Out</button>
               </>

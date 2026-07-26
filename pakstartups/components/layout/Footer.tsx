@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 const footerLinks = {
   Platform: [
@@ -27,6 +30,12 @@ const socialLinks = [
 ];
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/studio")) {
+    return null;
+  }
+
   return (
     <footer className="bg-[#d5fde2] w-full rounded-t-[32px] mt-20 font-['Plus_Jakarta_Sans']">
       <div className="max-w-8xl mx-auto px-8 pt-16 pb-8">
