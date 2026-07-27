@@ -15,8 +15,8 @@ export const metadata: Metadata = {
     template: "%s | PakStartups",
   },
   description:
-    "Discover Pakistan's most innovative startups, find co-founders, access funding, and connect with the growing entrepreneurial community.",
-  keywords: ["Pakistan startups", "startup ecosystem", "co-founder matching", "PakStartups", "entrepreneurship Pakistan"],
+    "Discover Pakistan's most innovative startups, use the Co Founder Matcher, access funding, and connect with the growing entrepreneurial community.",
+  keywords: ["Pakistan startups", "startup ecosystem", "Co Founder Matcher", "PakStartups", "entrepreneurship Pakistan"],
   authors: [{ name: "PakStartups Team" }],
   creator: "PakStartups",
   publisher: "PakStartups",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     site: "@PakStartups",
     creator: "@PakStartups",
     title: "PakStartups — Pakistan's Startup Ecosystem",
-    description: "Discover Pakistan's most innovative startups, find co-founders, and connect with the growing entrepreneurial community.",
+    description: "Discover Pakistan's most innovative startups, use the Co Founder Matcher, and connect with the growing entrepreneurial community.",
     images: ["/images/image-038.jpg"],
   },
   robots: {
