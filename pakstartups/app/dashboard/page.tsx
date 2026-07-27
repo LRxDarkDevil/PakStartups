@@ -4,20 +4,28 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
-import { query, collection, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { query, collection, where, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { getAcceptedConnections } from "@/lib/services/match";
 
 const quickLinks = [
   { label: "Edit Profile", icon: "edit", href: "/settings" },
   { label: "Submit Startup", icon: "add_business", href: "/startups/submit" },
-  { label: "Browse Matches", icon: "handshake", href: "/match" },
+  { label: "Co Founder Matcher", icon: "handshake", href: "/match" },
   { label: "Post B2B Demand", icon: "storefront", href: "/b2b" },
   { label: "Submit Idea", icon: "lightbulb", href: "/ideas" },
   { label: "Volunteer", icon: "volunteer_activism", href: "/volunteer" },
 ];
 
-type MyStartup = { id: string; name: string; stage: string; city: string; category: string; slug: string; status?: "pending" | "approved" | "rejected" };
+type MyStartup = {
+  id: string;
+  name: string;
+  stage: string;
+  city: string;
+  category: string;
+  slug: string;
+  status?: "pending" | "approved" | "rejected";
+};
 
 export default function DashboardPage() {
   const { user, profile, loading } = useAuth();
@@ -27,27 +35,25 @@ export default function DashboardPage() {
   const [connections, setConnections] = useState<number>(0);
   const [loadingStats, setLoadingStats] = useState(true);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) router.replace("/auth/login");
   }, [user, loading, router]);
 
-  // Load user-specific stats from Firestore
   useEffect(() => {
     if (!user) return;
     setLoadingStats(true);
     Promise.all([
-      // My startups
       getDocs(query(collection(db, "startups"), where("ownerId", "==", user.uid), limit(5))),
-      // My ideas
       getDocs(query(collection(db, "ideas"), where("ownerId", "==", user.uid))),
-      // My accepted connections (both directions)
       getAcceptedConnections(user.uid),
-    ]).then(([startupsSnap, ideasSnap, acceptedConns]) => {
-      setMyStartups(startupsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as MyStartup));
-      setMyIdeas(ideasSnap.size);
-      setConnections(acceptedConns.length);
-    }).catch(console.error).finally(() => setLoadingStats(false));
+    ])
+      .then(([startupsSnap, ideasSnap, acceptedConns]) => {
+        setMyStartups(startupsSnap.docs.map((startupDoc) => ({ id: startupDoc.id, ...startupDoc.data() }) as MyStartup));
+        setMyIdeas(ideasSnap.size);
+        setConnections(acceptedConns.length);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingStats(false));
   }, [user]);
 
   if (loading) {
@@ -57,20 +63,20 @@ export default function DashboardPage() {
       </div>
     );
   }
+
   if (!user || !profile) return null;
 
   const displayName = profile.fullName || user.displayName || user.email || "Founder";
   const firstName = displayName.split(" ")[0];
 
-  // Calculate profile completeness
   const checks = [
-    { ok: !!(profile.photoURL), label: "Profile photo" },
-    { ok: !!(profile.bio), label: "Bio added" },
+    { ok: !!profile.photoURL, label: "Profile photo" },
+    { ok: !!profile.bio, label: "Bio added" },
     { ok: profile.skills?.length > 0, label: "Skills & interests" },
     { ok: Object.keys(profile.socialLinks ?? {}).length > 0, label: "Social accounts" },
     { ok: myStartups.length > 0, label: "Startup linked" },
   ];
-  const completeness = Math.round((checks.filter((c) => c.ok).length / checks.length) * 100);
+  const completeness = Math.round((checks.filter((check) => check.ok).length / checks.length) * 100);
 
   const dashboardStats = [
     { label: "Profile Views", value: String(profile.views ?? 42), icon: "visibility", href: "/settings" },
@@ -82,7 +88,6 @@ export default function DashboardPage() {
   return (
     <>
       <div className="max-w-7xl mx-auto px-8 py-10">
-        {/* Welcome Banner */}
         <div className="bg-gradient-to-r from-[#0f5238] to-[#2d6a4f] rounded-2xl p-8 mb-10 text-white flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
           <div className="absolute right-0 top-0 opacity-10 pointer-events-none translate-x-8 -translate-y-8">
             <span className="material-symbols-outlined text-[200px]">waving_hand</span>
@@ -101,30 +106,31 @@ export default function DashboardPage() {
               {completeness < 100 ? "Complete Profile" : "Edit Profile"}
             </Link>
             <Link href="/match" className="border-2 border-white text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-white/10 transition-all">
-              Find Co-Founder
+              Co Founder Matcher
             </Link>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
-          {dashboardStats.map((s) => (
-            <Link key={s.label} href={s.href} className="bg-white rounded-xl p-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)] hover:border hover:border-[#0f5238]/30 transition-all group cursor-pointer">
+          {dashboardStats.map((stat) => (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="bg-white rounded-xl p-6 shadow-[0_4px_24px_rgba(15,82,56,0.06)] hover:border hover:border-[#0f5238]/30 transition-all group cursor-pointer"
+            >
               <div className="flex items-center justify-between mb-3">
-                <span className="material-symbols-outlined text-[#0f5238] text-2xl group-hover:scale-110 transition-transform">{s.icon}</span>
+                <span className="material-symbols-outlined text-[#0f5238] text-2xl group-hover:scale-110 transition-transform">{stat.icon}</span>
                 <span className="text-3xl font-black text-[#002112]">
-                  {loadingStats ? <span className="inline-block w-6 h-6 rounded bg-[#e0e0e0] animate-pulse" /> : s.value}
+                  {loadingStats ? <span className="inline-block w-6 h-6 rounded bg-[#e0e0e0] animate-pulse" /> : stat.value}
                 </span>
               </div>
-              <p className="text-[#404943] text-sm font-medium">{s.label}</p>
+              <p className="text-[#404943] text-sm font-medium">{stat.label}</p>
             </Link>
           ))}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Main */}
           <div className="flex-1">
-            {/* My Startups */}
             <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(15,82,56,0.06)] overflow-hidden mb-8">
               <div className="p-6 border-b border-[#e0e0e0] flex justify-between items-center">
                 <h2 className="font-black text-[#002112] text-lg">My Startups</h2>
@@ -144,32 +150,41 @@ export default function DashboardPage() {
                     </Link>
                   </div>
                 ) : (
-                  myStartups.map((s) => (
-                    <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#f5faf6] hover:bg-[#d5fde2]/60 rounded-xl border border-[#e0e0e0] transition-all">
+                  myStartups.map((startup) => (
+                    <div
+                      key={startup.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#f5faf6] hover:bg-[#d5fde2]/60 rounded-xl border border-[#e0e0e0] transition-all"
+                    >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-[#b4ef9d] rounded-xl flex items-center justify-center shrink-0">
                           <span className="material-symbols-outlined text-[#0f5238]">rocket_launch</span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-[#002112]">{s.name}</h3>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                              s.status === "pending" ? "bg-amber-100 text-amber-800 border border-amber-300" :
-                              s.status === "approved" ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
-                              "bg-red-100 text-red-800 border border-red-300"
-                            }`}>
-                              {s.status === "pending" ? "Pending Approval" : s.status || "Approved"}
+                            <h3 className="font-bold text-[#002112]">{startup.name}</h3>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                startup.status === "pending"
+                                  ? "bg-amber-100 text-amber-800 border border-amber-300"
+                                  : startup.status === "approved"
+                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                    : "bg-red-100 text-red-800 border border-red-300"
+                              }`}
+                            >
+                              {startup.status === "pending" ? "Pending Approval" : startup.status || "Approved"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs bg-[#b7f2a0] text-[#1e5111] px-2 py-0.5 rounded-full font-bold uppercase">{s.stage}</span>
-                            <span className="text-xs text-[#404943]">{s.city} · {s.category}</span>
+                            <span className="text-xs bg-[#b7f2a0] text-[#1e5111] px-2 py-0.5 rounded-full font-bold uppercase">{startup.stage}</span>
+                            <span className="text-xs text-[#404943]">{startup.city} · {startup.category}</span>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                        <Link href={`/startups/${s.slug}`} className="text-[#0f5238] hover:underline font-bold text-sm px-3 py-1.5 rounded bg-white border border-[#e0e0e0]">View</Link>
-                        <Link href={`/startups/${s.slug}/edit`} className="bg-[#0f5238] text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-[#2d6a4f] flex items-center gap-1 shadow-sm">
+                        <Link href={`/startups/${startup.slug}`} className="text-[#0f5238] hover:underline font-bold text-sm px-3 py-1.5 rounded bg-white border border-[#e0e0e0]">
+                          View
+                        </Link>
+                        <Link href={`/startups/${startup.slug}/edit`} className="bg-[#0f5238] text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-[#2d6a4f] flex items-center gap-1 shadow-sm">
                           <span className="material-symbols-outlined text-xs">edit</span> Edit
                         </Link>
                       </div>
@@ -179,7 +194,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Quick actions for new users */}
             {!loadingStats && myStartups.length === 0 && myIdeas === 0 && (
               <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(15,82,56,0.06)] overflow-hidden">
                 <div className="p-6 border-b border-[#e0e0e0]">
@@ -189,7 +203,7 @@ export default function DashboardPage() {
                   {[
                     { title: "Submit Your Startup", icon: "add_business", href: "/startups/submit", desc: "List your venture in the directory." },
                     { title: "Share an Idea", icon: "lightbulb", href: "/ideas/submit", desc: "Get community feedback on your idea." },
-                    { title: "Find a Co-Founder", icon: "group_add", href: "/match", desc: "Connect with builders across Pakistan." },
+                    { title: "Co Founder Matcher", icon: "group_add", href: "/match", desc: "Connect with builders across Pakistan." },
                     { title: "Browse Events", icon: "event", href: "/events", desc: "Attend pitching nights and workshops." },
                   ].map((item) => (
                     <Link key={item.href} href={item.href} className="flex items-start gap-3 p-4 rounded-xl bg-[#f5faf6] hover:bg-[#d5fde2] transition-all group">
@@ -205,27 +219,24 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Sidebar */}
           <div className="w-full lg:w-72 space-y-6">
-            {/* Quick Links */}
             <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(15,82,56,0.06)] p-6">
               <h2 className="font-black text-[#002112] text-sm uppercase tracking-wider mb-5">Quick Actions</h2>
               <div className="space-y-2">
-                {quickLinks.map((q) => (
+                {quickLinks.map((quickLink) => (
                   <Link
-                    key={q.href}
-                    href={q.href}
+                    key={quickLink.href}
+                    href={quickLink.href}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[#d5fde2] text-[#404943] hover:text-[#0f5238] transition-all group"
                   >
-                    <span className="material-symbols-outlined text-xl text-[#707973] group-hover:text-[#0f5238] transition-colors">{q.icon}</span>
-                    <span className="font-medium text-sm">{q.label}</span>
+                    <span className="material-symbols-outlined text-xl text-[#707973] group-hover:text-[#0f5238] transition-colors">{quickLink.icon}</span>
+                    <span className="font-medium text-sm">{quickLink.label}</span>
                     <span className="material-symbols-outlined text-sm ml-auto opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Profile Completeness */}
             <div className="bg-[#d5fde2] rounded-xl p-6">
               <h3 className="font-bold text-[#002112] mb-4">Profile Strength</h3>
               <div className="relative h-2 bg-[#bfc9c1]/30 rounded-full mb-3">
