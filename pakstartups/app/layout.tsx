@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ProductTerminologyGuard from "@/components/layout/ProductTerminologyGuard";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { PHProvider } from "@/lib/context/PostHogContext";
 import PostHogPageView from "@/components/analytics/PostHogPageView";
@@ -89,6 +90,7 @@ export default function RootLayout({
             <Suspense fallback={null}>
               <PostHogPageView />
             </Suspense>
+            <ProductTerminologyGuard />
             <Header />
             <main>{children}</main>
             <Footer />
