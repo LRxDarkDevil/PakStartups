@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/context/AuthContext";
 import { logout } from "@/lib/firebase/auth";
 import EventAnnouncementBar from "./EventAnnouncementBar";
@@ -26,6 +27,7 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const avatarUrl = profile?.photoURL || user?.photoURL;
@@ -36,6 +38,10 @@ export default function Header() {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {
@@ -86,6 +92,148 @@ export default function Header() {
   if (pathname?.startsWith("/admin") || pathname?.startsWith("/studio")) {
     return null;
   }
+
+  const mobileSidebar = (
+    <div className="fixed inset-0 z-[100] md:hidden" role="dialog" aria-modal="true" aria-label="Site navigation">
+      <button
+        type="button"
+        aria-label="Close navigation sidebar"
+        className="absolute inset-0 bg-[#002112]/45 backdrop-blur-sm"
+        onClick={() => setMobileOpen(false)}
+      />
+
+      <aside
+        id="mobile-navigation-sidebar"
+        className="relative flex h-dvh w-[min(22rem,88vw)] flex-col bg-[#e8ffee] shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-[#0f5238]/10 px-6 py-5">
+          <Link href="/" onClick={() => setMobileOpen(false)} className="inline-flex items-center gap-3">
+            <Image
+              src="/logo.png"
+              alt="PakStartups Logo"
+              width={40}
+              height={40}
+              className="h-10 w-auto object-contain"
+              priority
+            />
+            <span className="font-black text-[#0f5238] text-lg tracking-tight">PakStartups</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-[#0f5238] hover:bg-[#d5fde2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f5238]"
+            aria-label="Close navigation sidebar"
+          >
+            <span className="material-symbols-outlined text-3xl">close</span>
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+          <nav className="space-y-1" aria-label="Mobile navigation">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-base font-semibold transition-colors ${
+                  isActiveLink(link.href)
+                    ? "bg-[#0f5238] text-white shadow-sm"
+                    : "text-[#2d6a4f] hover:bg-[#d5fde2] hover:text-[#0f5238]"
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">{link.icon}</span>
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className="border-t border-[#0f5238]/10 bg-white/45 px-5 py-5">
+          {loading ? (
+            <div className="h-24 rounded-xl bg-[#d5fde2] animate-pulse" />
+          ) : user ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 rounded-xl bg-white/80 p-3 border border-[#0f5238]/10">
+                {avatarUrl && !imgError ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar"
+                    referrerPolicy="no-referrer"
+                    onError={() => setImgError(true)}
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-[#0f5238] text-white text-xs font-black flex items-center justify-center">
+                    {initials}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-[#002112]">{displayName}</p>
+                  <p className="truncate text-xs text-[#707973]">{user.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {profile?.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileOpen(false)}
+                    className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#0f5238] px-4 py-3 font-bold text-white"
+                  >
+                    <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                    Admin Dashboard
+                  </Link>
+                )}
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-[#0f5238]/20 bg-white px-3 py-3 font-bold text-[#0f5238]"
+                >
+                  <span className="material-symbols-outlined text-lg">dashboard</span>
+                  Dashboard
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-[#0f5238]/20 bg-white px-3 py-3 font-bold text-[#0f5238]"
+                >
+                  <span className="material-symbols-outlined text-lg">settings</span>
+                  Settings
+                </Link>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-bold text-red-600 hover:bg-red-100"
+              >
+                <span className="material-symbols-outlined text-lg">logout</span>
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              <Link
+                href="/auth/login"
+                onClick={() => setMobileOpen(false)}
+                className="text-center py-3 border border-[#0f5238]/25 bg-white rounded-xl text-[#0f5238] font-bold"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/auth/signup"
+                onClick={() => setMobileOpen(false)}
+                className="text-center py-3 bg-[#0f5238] text-white rounded-xl font-bold shadow-sm"
+              >
+                Join Now
+              </Link>
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#e8ffee]/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(15,82,56,0.06)] font-['Plus_Jakarta_Sans'] antialiased text-sm font-medium">
@@ -218,147 +366,7 @@ export default function Header() {
         </button>
       </nav>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[80] md:hidden" role="dialog" aria-modal="true" aria-label="Site navigation">
-          <button
-            type="button"
-            aria-label="Close navigation sidebar"
-            className="absolute inset-0 bg-[#002112]/45 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-          />
-
-          <aside
-            id="mobile-navigation-sidebar"
-            className="relative flex h-dvh w-[min(22rem,88vw)] flex-col bg-[#e8ffee] shadow-2xl"
-          >
-            <div className="flex items-center justify-between border-b border-[#0f5238]/10 px-6 py-5">
-              <Link href="/" onClick={() => setMobileOpen(false)} className="inline-flex items-center gap-3">
-                <Image
-                  src="/logo.png"
-                  alt="PakStartups Logo"
-                  width={40}
-                  height={40}
-                  className="h-10 w-auto object-contain"
-                  priority
-                />
-                <span className="font-black text-[#0f5238] text-lg tracking-tight">PakStartups</span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-[#0f5238] hover:bg-[#d5fde2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f5238]"
-                aria-label="Close navigation sidebar"
-              >
-                <span className="material-symbols-outlined text-3xl">close</span>
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
-              <nav className="space-y-1" aria-label="Mobile navigation">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-base font-semibold transition-colors ${
-                      isActiveLink(link.href)
-                        ? "bg-[#0f5238] text-white shadow-sm"
-                        : "text-[#2d6a4f] hover:bg-[#d5fde2] hover:text-[#0f5238]"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-xl">{link.icon}</span>
-                    <span>{link.label}</span>
-                  </Link>
-                ))}
-              </nav>
-            </div>
-
-            <div className="border-t border-[#0f5238]/10 bg-white/45 px-5 py-5">
-              {loading ? (
-                <div className="h-24 rounded-xl bg-[#d5fde2] animate-pulse" />
-              ) : user ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 rounded-xl bg-white/80 p-3 border border-[#0f5238]/10">
-                    {avatarUrl && !imgError ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={avatarUrl}
-                        alt="Avatar"
-                        referrerPolicy="no-referrer"
-                        onError={() => setImgError(true)}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-[#0f5238] text-white text-xs font-black flex items-center justify-center">
-                        {initials}
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate font-bold text-[#002112]">{displayName}</p>
-                      <p className="truncate text-xs text-[#707973]">{user.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    {profile?.role === "admin" && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setMobileOpen(false)}
-                        className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#0f5238] px-4 py-3 font-bold text-white"
-                      >
-                        <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
-                        Admin Dashboard
-                      </Link>
-                    )}
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center gap-2 rounded-xl border border-[#0f5238]/20 bg-white px-3 py-3 font-bold text-[#0f5238]"
-                    >
-                      <span className="material-symbols-outlined text-lg">dashboard</span>
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/settings"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center gap-2 rounded-xl border border-[#0f5238]/20 bg-white px-3 py-3 font-bold text-[#0f5238]"
-                    >
-                      <span className="material-symbols-outlined text-lg">settings</span>
-                      Settings
-                    </Link>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-bold text-red-600 hover:bg-red-100"
-                  >
-                    <span className="material-symbols-outlined text-lg">logout</span>
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-3">
-                  <Link
-                    href="/auth/login"
-                    onClick={() => setMobileOpen(false)}
-                    className="text-center py-3 border border-[#0f5238]/25 bg-white rounded-xl text-[#0f5238] font-bold"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    onClick={() => setMobileOpen(false)}
-                    className="text-center py-3 bg-[#0f5238] text-white rounded-xl font-bold shadow-sm"
-                  >
-                    Join Now
-                  </Link>
-                </div>
-              )}
-            </div>
-          </aside>
-        </div>
-      )}
+      {mounted && mobileOpen ? createPortal(mobileSidebar, document.body) : null}
     </header>
   );
 }
