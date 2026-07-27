@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import AdminGuard from "@/components/admin/AdminGuard";
 import { logout } from "@/lib/firebase/auth";
-import { useRouter } from "next/navigation";
 
 const sideNav = [
   { label: "Overview / Queue", icon: "dashboard", href: "/admin" },
@@ -20,27 +19,92 @@ const sideNav = [
   { label: "Site Config", icon: "tune", href: "/admin/settings" },
 ];
 
+function isNavItemActive(pathname: string, href: string) {
+  if (href === "/admin") return pathname === "/admin";
+  if (href === "/admin/events") return pathname === "/admin/events";
+  return pathname.startsWith(href);
+}
+
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, profile } = useAuth();
   const router = useRouter();
   const [adminSearch, setAdminSearch] = useState("");
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const displayName = profile?.fullName || user?.displayName || "Admin";
   const initials = displayName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileNavOpen]);
 
   const handleLogout = async () => {
     await logout();
     router.push("/auth/login");
   };
 
+  const renderNavLinks = (onNavigate?: () => void) => (
+    <nav className="flex-1 space-y-1" aria-label="Admin navigation">
+      {sideNav.map((item) => {
+        const isActive = isNavItemActive(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold tracking-tight transition-colors ${
+              isActive
+                ? "bg-[#0f5238] text-white"
+                : "text-[#404943] hover:text-[#0f5238] hover:bg-[#e3eae6]"
+            }`}
+          >
+            <span className="material-symbols-outlined">{item.icon}</span>
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
+  const adminIdentity = (
+    <div className="px-3 py-2">
+      <p className="text-xs font-bold text-[#404943] uppercase tracking-widest mb-1">Logged in as</p>
+      <p className="text-sm font-bold text-[#002112] truncate">{displayName}</p>
+      <span className="inline-block mt-1 px-2 py-0.5 bg-[#0f5238] text-white text-[10px] font-bold rounded-full uppercase tracking-widest">Admin</span>
+    </div>
+  );
+
   return (
     <div className="flex flex-col min-h-screen bg-[#f5fbf7]">
       {/* TopNavBar */}
-      <header className="flex justify-between items-center h-16 px-8 sticky top-0 z-40 bg-[#dee4e0]/80 backdrop-blur-xl border-b border-[#bfc9c1]/20">
-        <div className="flex-1 flex items-center gap-6">
-          <Link href="/admin" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+      <header className="flex justify-between items-center h-16 px-4 sm:px-6 lg:px-8 sticky top-0 z-40 bg-[#dee4e0]/80 backdrop-blur-xl border-b border-[#bfc9c1]/20">
+        <div className="flex-1 flex items-center gap-3 sm:gap-6 min-w-0">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            className="lg:hidden shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#0f5238] hover:bg-[#e3eae6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f5238]"
+            aria-label="Open admin sidebar"
+            aria-controls="admin-mobile-sidebar"
+            aria-expanded={mobileNavOpen}
+          >
+            <span className="material-symbols-outlined text-2xl">menu</span>
+          </button>
+          <Link href="/admin" className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0">
             <Image
               src="/logo.png"
               alt="PakStartups Logo"
@@ -66,8 +130,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             />
           </div>
         </div>
-        <div className="flex items-center gap-4 text-[#404943]">
-          <Link href="/" className="text-[#0f5238] border border-[#0f5238]/20 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#b1f0ce] transition-colors">
+        <div className="flex items-center gap-2 sm:gap-4 text-[#404943] shrink-0">
+          <Link href="/" className="text-[#0f5238] border border-[#0f5238]/20 px-3 sm:px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#b1f0ce] transition-colors whitespace-nowrap">
             ← Public Site
           </Link>
           <div className="relative">
@@ -109,43 +173,78 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className="flex flex-1 max-w-[1440px] mx-auto w-full">
-        {/* SideNavBar */}
-        <aside className="w-64 border-r border-[#bfc9c1]/20 flex flex-col pt-8 pb-6 px-4 hidden lg:flex bg-white">
-          <nav className="flex-1 space-y-1">
-            {sideNav.map((item) => {
-              const isActive = item.href === "/admin"
-                ? pathname === "/admin"
-                : item.href === "/admin/events"
-                  ? pathname === "/admin/events"
-                  : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold tracking-tight transition-colors ${
-                    isActive
-                      ? "bg-[#0f5238] text-white"
-                      : "text-[#404943] hover:text-[#0f5238] hover:bg-[#e3eae6]"
-                  }`}
-                >
-                  <span className="material-symbols-outlined">{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="mt-auto pt-6 border-t border-[#bfc9c1]/20">
-            <div className="px-3 py-2">
-              <p className="text-xs font-bold text-[#404943] uppercase tracking-widest mb-1">Logged in as</p>
-              <p className="text-sm font-bold text-[#002112] truncate">{displayName}</p>
-              <span className="inline-block mt-1 px-2 py-0.5 bg-[#0f5238] text-white text-[10px] font-bold rounded-full uppercase tracking-widest">Admin</span>
+      {/* Mobile sidebar */}
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Admin sidebar">
+          <button
+            type="button"
+            aria-label="Close admin sidebar"
+            className="absolute inset-0 bg-[#002112]/45 backdrop-blur-sm"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <aside
+            id="admin-mobile-sidebar"
+            className="relative flex h-full w-[min(20rem,88vw)] flex-col bg-white px-4 pb-6 pt-4 shadow-2xl"
+          >
+            <div className="mb-6 flex items-center justify-between border-b border-[#bfc9c1]/20 pb-4">
+              <Link href="/admin" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-2">
+                <Image
+                  src="/logo.png"
+                  alt="PakStartups Logo"
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 rounded-lg"
+                />
+                <span className="font-bold text-[#0f5238] uppercase tracking-widest text-lg">Admin</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#404943] hover:bg-[#e3eae6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f5238]"
+                aria-label="Close admin sidebar"
+              >
+                <span className="material-symbols-outlined text-2xl">close</span>
+              </button>
             </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {renderNavLinks(() => setMobileNavOpen(false))}
+            </div>
+
+            <div className="mt-6 space-y-3 border-t border-[#bfc9c1]/20 pt-4">
+              {adminIdentity}
+              <Link
+                href="/"
+                onClick={() => setMobileNavOpen(false)}
+                className="flex items-center justify-center gap-2 rounded-lg border border-[#0f5238]/20 px-4 py-2.5 text-sm font-bold text-[#0f5238] hover:bg-[#d5fde2]"
+              >
+                <span className="material-symbols-outlined text-lg">arrow_back</span>
+                Public Site
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50"
+              >
+                <span className="material-symbols-outlined text-lg">logout</span>
+                Logout
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      <div className="flex flex-1 max-w-[1440px] mx-auto w-full">
+        {/* Desktop SideNavBar */}
+        <aside className="w-64 border-r border-[#bfc9c1]/20 flex-col pt-8 pb-6 px-4 hidden lg:flex bg-white">
+          {renderNavLinks()}
+          <div className="mt-auto pt-6 border-t border-[#bfc9c1]/20">
+            {adminIdentity}
           </div>
         </aside>
 
         {/* Content Canvas */}
-        <main className="flex-1 w-full bg-white relative">
+        <main className="flex-1 w-full min-w-0 bg-white relative">
           {children}
         </main>
       </div>
