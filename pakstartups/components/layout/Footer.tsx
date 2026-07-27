@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const footerLinks = {
   Platform: [
     { label: "Startup Directory", href: "/startups" },
-    { label: "Co-Founder Matching", href: "/match" },
+    { label: "Co Founder Matcher", href: "/match" },
     { label: "B2B Marketplace", href: "/b2b" },
     { label: "Ecosystem Map", href: "/ecosystem" },
     { label: "Submit Startup", href: "/startups/submit" },
@@ -63,12 +63,20 @@ export default function Footer() {
               Building the definitive platform for Pakistan&apos;s entrepreneurial ecosystem through data, community, and capital.
             </p>
             <p className="text-sm text-[#2d6a4f] mb-4">
-              Support: <a href="mailto:hello@pakstartups.org" className="font-semibold hover:text-[#0f5238] transition-colors">hello@pakstartups.org</a>
+              Support:{" "}
+              <a href="mailto:hello@pakstartups.org" className="font-semibold hover:text-[#0f5238] transition-colors">
+                hello@pakstartups.org
+              </a>
             </p>
             {/* Social icons */}
             <div className="flex gap-4">
               {socialLinks.map((social) => (
-                <a key={social.label} href={social.href} aria-label={social.label} className="text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
+                <a
+                  key={social.label}
+                  href={social.href}
+                  aria-label={social.label}
+                  className="text-[#2d6a4f] hover:text-[#0f5238] transition-colors"
+                >
                   <span className="material-symbols-outlined">{social.icon}</span>
                 </a>
               ))}
@@ -78,16 +86,11 @@ export default function Footer() {
           {/* Link columns */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="text-xs font-black text-[#0f5238] mb-6 uppercase tracking-widest">
-                {category}
-              </h4>
+              <h4 className="text-xs font-black text-[#0f5238] mb-6 uppercase tracking-widest">{category}</h4>
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-[#2d6a4f] hover:text-[#0f5238] transition-colors"
-                    >
+                    <Link href={link.href} className="text-sm text-[#2d6a4f] hover:text-[#0f5238] transition-colors">
                       {link.label}
                     </Link>
                   </li>
