@@ -9,6 +9,8 @@
     "lint": "eslint",
     "test:event-detail": "tsx scripts/test-event-detail.ts",
     "test:event-announcement": "tsx scripts/test-event-announcement.ts",
+    "test:startup-validation": "tsx scripts/test-startup-validation.ts",
+    "test:startup-rules": "tsx scripts/test-startup-rules.ts",
     "seed:legacy": "tsx scripts/seed.mjs",
     "seed:client": "tsx scripts/seed-client.mjs",
     "seed:ecosystem": "tsx scripts/seed-ecosystem.ts",

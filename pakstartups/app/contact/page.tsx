@@ -266,12 +266,12 @@ export default function ContactPage() {
                   {submitting ? (
                     <>
                       <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Sending to Discord & Support…</span>
+                      <span>Sending Form</span>
                     </>
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-xl">send</span>
-                      <span>Send Form to Discord & Support</span>
+                      <span>Send Form</span>
                     </>
                   )}
                 </button>

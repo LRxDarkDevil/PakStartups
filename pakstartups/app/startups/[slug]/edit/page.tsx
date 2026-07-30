@@ -6,7 +6,13 @@ import Link from "next/link";
 import { collection, doc, getDocs, query, updateDoc, where, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
-import { createCanonicalLocation, isRegionId, REGIONS, RegionId } from "@/lib/location";
+import { createCanonicalLocation, REGIONS, RegionId } from "@/lib/location";
+import {
+  validateStartupSubmission,
+  STARTUP_NAME_MAX_LENGTH,
+  STARTUP_DESC_MAX_LENGTH,
+} from "@/lib/validations/startup";
+import posthog from "posthog-js";
 
 const categories = ["FinTech","AgriTech","HealthTech","EdTech","E-Commerce","SaaS","Logistics","Cleantech","Prop-Tech","HR-Tech","Other"];
 const stages = ["Idea","MVP","Growth","Scaling","Profitable"];
@@ -52,6 +58,7 @@ export default function EditStartupPage({ params }: { params: Promise<{ slug: st
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
   const [startup, setStartup] = useState<StartupDoc | null>(null);
 
@@ -69,8 +76,10 @@ export default function EditStartupPage({ params }: { params: Promise<{ slug: st
     linkedin: "",
   });
 
-  const set = (field: keyof EditFormData, value: string) =>
+  const set = (field: keyof EditFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+  };
 
   useEffect(() => {
     async function fetchStartup() {
@@ -148,39 +157,42 @@ export default function EditStartupPage({ params }: { params: Promise<{ slug: st
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError("Startup name is required."); return; }
-    if (!form.tagline.trim()) { setError("Tagline is required."); return; }
-    if (!form.desc.trim() || form.desc.length < 20) { setError("Description must be at least 20 characters."); return; }
-    if (!form.category) { setError("Please select a category."); return; }
-    if (!isRegionId(form.regionId)) { setError("Please select a valid region."); return; }
+    const validation = validateStartupSubmission(form);
+    if (!validation.valid || !validation.normalizedData) {
+      setFieldErrors(validation.errors);
+      const firstError = Object.values(validation.errors)[0] || "Please fix validation errors.";
+      setError(firstError);
+      return;
+    }
 
     setSaving(true);
     setError("");
     setSuccess(false);
 
     try {
+      const norm = validation.normalizedData;
       const location = createCanonicalLocation({
-        regionId: form.regionId as RegionId,
-        city: form.city,
+        regionId: norm.regionId,
+        city: norm.city,
       });
 
-      const foundersArray = form.founders
-        .split(",")
-        .map((f) => f.trim())
-        .filter(Boolean);
-
       await updateDoc(doc(db, "startups", startup.id), {
-        name: form.name.trim(),
-        tagline: form.tagline.trim(),
-        desc: form.desc.trim(),
-        category: form.category,
+        name: norm.name,
+        tagline: norm.tagline,
+        desc: norm.desc,
+        category: norm.category,
         ...location,
-        website: form.website.trim(),
-        stage: form.stage,
-        teamSize: form.teamSize,
-        founders: foundersArray,
-        linkedin: form.linkedin.trim(),
+        website: norm.website,
+        stage: norm.stage,
+        teamSize: norm.teamSize,
+        founders: norm.founders,
+        linkedin: norm.linkedin,
         updatedAt: serverTimestamp(),
+      });
+
+      posthog.capture("startup_edit_succeeded", {
+        name_length: norm.name.length,
+        desc_length: norm.desc.length,
       });
 
       setSuccess(true);
@@ -189,7 +201,21 @@ export default function EditStartupPage({ params }: { params: Promise<{ slug: st
       }, 1500);
     } catch (err: unknown) {
       console.error("Error updating startup:", err);
-      setError(err instanceof Error ? err.message : "Failed to update startup. Please try again.");
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      const isPermissionError = /permission-denied|insufficient permissions/i.test(rawMsg);
+      const errorCode = isPermissionError ? "permission-denied" : "update-failed";
+
+      posthog.capture("startup_edit_failed", {
+        error_code: errorCode,
+        name_length: form.name.trim().length,
+        desc_length: form.desc.trim().length,
+      });
+
+      if (isPermissionError) {
+        setError("Update could not be saved due to invalid data or authorization permissions. Please check your inputs and try again.");
+      } else {
+        setError("Failed to update startup. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -258,28 +284,59 @@ export default function EditStartupPage({ params }: { params: Promise<{ slug: st
         <div className="space-y-6">
           <h2 className="text-xl font-black text-[#002112] border-b border-[#e0e0e0] pb-3">Basic Information</h2>
 
-          <Field label="Startup Name *">
-            <input value={form.name} onChange={(e) => set("name", e.target.value)} type="text" className={inp} placeholder="e.g. PayEasy" />
+          <Field
+            label="Startup Name *"
+            counter={`${form.name.length}/${STARTUP_NAME_MAX_LENGTH}`}
+            error={fieldErrors.name}
+          >
+            <input
+              value={form.name}
+              maxLength={STARTUP_NAME_MAX_LENGTH}
+              onChange={(e) => set("name", e.target.value)}
+              type="text"
+              className={inp}
+              placeholder="e.g. PayEasy"
+              aria-invalid={!!fieldErrors.name}
+            />
           </Field>
 
-          <Field label="Tagline *">
-            <input value={form.tagline} onChange={(e) => set("tagline", e.target.value)} type="text" className={inp} placeholder="One line description" />
+          <Field label="Tagline *" error={fieldErrors.tagline}>
+            <input
+              value={form.tagline}
+              onChange={(e) => set("tagline", e.target.value)}
+              type="text"
+              className={inp}
+              placeholder="One line description"
+              aria-invalid={!!fieldErrors.tagline}
+            />
           </Field>
 
-          <Field label="Description *">
-            <textarea value={form.desc} onChange={(e) => set("desc", e.target.value)} rows={4} className={`${inp} resize-none`} placeholder="What does your startup do?" />
+          <Field
+            label="Description *"
+            counter={`${form.desc.length}/${STARTUP_DESC_MAX_LENGTH}`}
+            error={fieldErrors.desc}
+          >
+            <textarea
+              value={form.desc}
+              maxLength={STARTUP_DESC_MAX_LENGTH}
+              onChange={(e) => set("desc", e.target.value)}
+              rows={5}
+              className={`${inp} resize-none`}
+              placeholder="What does your startup do?"
+              aria-invalid={!!fieldErrors.desc}
+            />
           </Field>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Category *">
-              <select value={form.category} onChange={(e) => set("category", e.target.value)} className={inp}>
+            <Field label="Category *" error={fieldErrors.category}>
+              <select value={form.category} onChange={(e) => set("category", e.target.value)} className={inp} aria-invalid={!!fieldErrors.category}>
                 <option value="">Select category...</option>
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </Field>
 
-            <Field label="Region *">
-              <select value={form.regionId} onChange={(e) => set("regionId", e.target.value)} className={inp}>
+            <Field label="Region *" error={fieldErrors.regionId}>
+              <select value={form.regionId} onChange={(e) => set("regionId", e.target.value)} className={inp} aria-invalid={!!fieldErrors.regionId}>
                 <option value="">Select region...</option>
                 {REGIONS.map((region) => <option key={region.id} value={region.id}>{region.label}</option>)}
               </select>
@@ -287,12 +344,12 @@ export default function EditStartupPage({ params }: { params: Promise<{ slug: st
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="City">
+            <Field label="City" error={fieldErrors.city}>
               <input value={form.city} onChange={(e) => set("city", e.target.value)} type="text" className={inp} placeholder="e.g. Lahore" />
             </Field>
 
-            <Field label="Website URL">
-              <input value={form.website} onChange={(e) => set("website", e.target.value)} type="url" className={inp} placeholder="https://yourstartup.pk" />
+            <Field label="Website URL" error={fieldErrors.website}>
+              <input value={form.website} onChange={(e) => set("website", e.target.value)} type="url" className={inp} placeholder="https://yourstartup.pk" aria-invalid={!!fieldErrors.website} />
             </Field>
           </div>
         </div>
@@ -301,7 +358,7 @@ export default function EditStartupPage({ params }: { params: Promise<{ slug: st
         <div className="space-y-6 pt-4 border-t border-[#e0e0e0]">
           <h2 className="text-xl font-black text-[#002112] border-b border-[#e0e0e0] pb-3">Team & Stage</h2>
 
-          <Field label="Current Stage *">
+          <Field label="Current Stage *" error={fieldErrors.stage}>
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
               {stages.map((s) => (
                 <button
@@ -361,11 +418,29 @@ export default function EditStartupPage({ params }: { params: Promise<{ slug: st
 
 const inp = "w-full px-4 py-3 bg-white border border-[#e0e0e0] rounded-lg focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none text-[#002112] transition-all";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  counter,
+  error,
+  children,
+}: {
+  label: string;
+  counter?: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="block text-xs font-bold text-[#404943] mb-2 uppercase tracking-wider">{label}</label>
+      <div className="flex justify-between items-center mb-2">
+        <label className="block text-xs font-bold text-[#404943] uppercase tracking-wider">{label}</label>
+        {counter && <span className="text-xs text-[#707973] font-medium">{counter}</span>}
+      </div>
       {children}
+      {error && (
+        <p className="text-xs text-red-600 font-medium mt-1" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

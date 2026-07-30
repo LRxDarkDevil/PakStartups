@@ -98,16 +98,19 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuth()
         && validString(request.resource.data.name, 2, 100)
-        && validString(request.resource.data.desc, 10, 500)
+        && validString(request.resource.data.desc, 20, 2000)
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.status == 'pending'
         && validCanonicalLocation(request.resource.data);
       allow update: if locationChangeValid() && (
         isAdmin()
-        // Owner can edit content but cannot change ownerId, status, or the views counter
+        // Owner can edit content but cannot change ownerId, status, or the views counter.
+        // Validate name or description only when that field changes, preserving legacy records.
         || (isOwner(resource.data.ownerId)
             && statusUnchanged()
-            && noneChanged(['ownerId', 'views']))
+            && noneChanged(['ownerId', 'views'])
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['name']) || validString(request.resource.data.name, 2, 100))
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['desc']) || validString(request.resource.data.desc, 20, 2000)))
         // Anyone (even unauthenticated) may increment views by exactly 1
         || (onlyChanged(['views'])
             && request.resource.data.views is int

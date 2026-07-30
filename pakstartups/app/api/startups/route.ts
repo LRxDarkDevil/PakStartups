@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     if (!stage || stage.length > 80) {
       return NextResponse.json({ error: "Invalid stage" }, { status: 400 });
     }
-    if (!desc || desc.length < 10 || desc.length > 500) {
+    if (!desc || desc.length < 20 || desc.length > 2000) {
       return NextResponse.json({ error: "Invalid description" }, { status: 400 });
     }
     if (website.length > 0 && website.length > 300) {

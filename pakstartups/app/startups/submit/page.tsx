@@ -2,10 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/lib/context/AuthContext";
-import { createCanonicalLocation, isRegionId, REGIONS } from "@/lib/location";
+import { REGIONS, RegionId } from "@/lib/location";
+import { submitStartup } from "@/lib/services/startups";
+import {
+  validateStartupSubmission,
+  STARTUP_NAME_MAX_LENGTH,
+  STARTUP_DESC_MAX_LENGTH,
+} from "@/lib/validations/startup";
+import posthog from "posthog-js";
 import Link from "next/link";
 
 const steps = ["Basic Info", "Team & Stage", "Review", "Done"];
@@ -43,6 +50,7 @@ export default function SubmitStartupPage() {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [existingStartups, setExistingStartups] = useState<ExistingStartup[]>([]);
   const [form, setForm] = useState<FormData>({
     name: "", tagline: "", desc: "", category: "", regionId: "", city: "",
@@ -50,8 +58,10 @@ export default function SubmitStartupPage() {
     founders: "", linkedin: "", agreed: false,
   });
 
-  const set = (field: keyof FormData, value: string | boolean) =>
+  const set = (field: keyof FormData, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+  };
 
   // Check for existing submissions
   useEffect(() => {
@@ -69,16 +79,18 @@ export default function SubmitStartupPage() {
     fetchExisting();
   }, [user]);
 
-  const validateStep = () => {
+  const validateCurrentStep = () => {
+    const result = validateStartupSubmission(form);
+    setFieldErrors(result.errors);
+
     if (step === 0) {
-      if (!form.name.trim()) return "Startup name is required.";
-      if (!form.tagline.trim()) return "Tagline is required.";
-      if (!form.desc.trim() || form.desc.length < 20) return "Description must be at least 20 characters.";
-      if (!form.category) return "Please select a category.";
-      if (!isRegionId(form.regionId)) return "Please select a valid region.";
+      if (result.errors.name || result.errors.tagline || result.errors.desc || result.errors.category || result.errors.regionId || result.errors.city || result.errors.website) {
+        const firstError = result.errors.name || result.errors.tagline || result.errors.desc || result.errors.category || result.errors.regionId || result.errors.city || result.errors.website;
+        return firstError;
+      }
     }
     if (step === 1) {
-      if (!form.stage) return "Please select your current stage.";
+      if (result.errors.stage) return result.errors.stage;
     }
     if (step === 2) {
       if (!form.agreed) return "You must agree to the Terms of Service.";
@@ -87,48 +99,68 @@ export default function SubmitStartupPage() {
   };
 
   const handleNext = () => {
-    const err = validateStep();
+    const err = validateCurrentStep();
     if (err) { setError(err); return; }
     setError("");
     setStep((s) => s + 1);
   };
 
   const handleSubmit = async () => {
-    const err = validateStep();
+    const err = validateCurrentStep();
     if (err) { setError(err); return; }
     if (!user) { router.push("/auth/login"); return; }
-    if (!isRegionId(form.regionId)) { setError("Please select a valid region."); return; }
+
+    const validation = validateStartupSubmission(form);
+    if (!validation.valid || !validation.normalizedData) {
+      setError("Please fix all form validation errors before submitting.");
+      setFieldErrors(validation.errors);
+      return;
+    }
+
     setSubmitting(true);
     setError("");
+
     try {
-      const slug = form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      const location = createCanonicalLocation({
-        regionId: form.regionId,
-        city: form.city,
-      });
-      await addDoc(collection(db, "startups"), {
-        name: form.name.trim(),
-        tagline: form.tagline.trim(),
-        desc: form.desc.trim(),
-        category: form.category,
-        ...location,
-        website: form.website.trim(),
-        stage: form.stage,
-        teamSize: form.teamSize,
-        founders: form.founders.split(",").map((f) => f.trim()).filter(Boolean),
-        linkedin: form.linkedin.trim(),
-        slug,
+      const norm = validation.normalizedData;
+      await submitStartup({
+        name: norm.name,
+        tagline: norm.tagline,
+        desc: norm.desc,
+        category: norm.category,
+        stage: norm.stage,
+        teamSize: norm.teamSize,
+        founders: norm.founders,
+        linkedin: norm.linkedin,
+        website: norm.website,
+        city: norm.city,
+        regionId: norm.regionId as RegionId,
+        slug: norm.slug,
         ownerId: user.uid,
         ownerName: profile?.fullName || user.displayName || "Anonymous",
-        status: "pending", // goes into admin queue
-        views: 0,
-        logo: "",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
       });
+
+      posthog.capture("startup_submission_succeeded", {
+        name_length: norm.name.length,
+        desc_length: norm.desc.length,
+      });
+
       setStep(3);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Submission failed. Please try again.");
+      const rawMsg = e instanceof Error ? e.message : String(e);
+      const isPermissionError = /permission-denied|insufficient permissions/i.test(rawMsg);
+      const errorCode = isPermissionError ? "permission-denied" : "submission-failed";
+
+      posthog.capture("startup_submission_failed", {
+        error_code: errorCode,
+        name_length: form.name.trim().length,
+        desc_length: form.desc.trim().length,
+      });
+
+      if (isPermissionError) {
+        setError("Submission could not be saved due to invalid data or authorization permissions. Please check your inputs and try again.");
+      } else {
+        setError("Submission failed. Please check your network connection and try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -254,34 +286,103 @@ export default function SubmitStartupPage() {
         {step === 0 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-black text-[#002112]">Basic Information</h2>
-            <Field label="Startup Name *">
-              <input value={form.name} onChange={(e) => set("name", e.target.value)} type="text" placeholder="e.g. PayEasy" className={inp} />
+            <Field
+              label="Startup Name *"
+              counter={`${form.name.length}/${STARTUP_NAME_MAX_LENGTH}`}
+              error={fieldErrors.name}
+            >
+              <input
+                id="name-input"
+                value={form.name}
+                maxLength={STARTUP_NAME_MAX_LENGTH}
+                onChange={(e) => set("name", e.target.value)}
+                type="text"
+                placeholder="e.g. PayEasy"
+                className={inp}
+                aria-invalid={!!fieldErrors.name}
+                aria-describedby={fieldErrors.name ? "name-error" : undefined}
+              />
             </Field>
-            <Field label="Tagline *">
-              <input value={form.tagline} onChange={(e) => set("tagline", e.target.value)} type="text" placeholder="One line description" className={inp} />
+
+            <Field label="Tagline *" error={fieldErrors.tagline}>
+              <input
+                id="tagline-input"
+                value={form.tagline}
+                onChange={(e) => set("tagline", e.target.value)}
+                type="text"
+                placeholder="One line description"
+                className={inp}
+                aria-invalid={!!fieldErrors.tagline}
+                aria-describedby={fieldErrors.tagline ? "tagline-error" : undefined}
+              />
             </Field>
-            <Field label="Description *">
-              <textarea value={form.desc} onChange={(e) => set("desc", e.target.value)} rows={4} placeholder="What does your startup do, what problem does it solve?" className={`${inp} resize-none`} />
+
+            <Field
+              label="Description *"
+              counter={`${form.desc.length}/${STARTUP_DESC_MAX_LENGTH}`}
+              error={fieldErrors.desc}
+            >
+              <textarea
+                id="desc-input"
+                value={form.desc}
+                maxLength={STARTUP_DESC_MAX_LENGTH}
+                onChange={(e) => set("desc", e.target.value)}
+                rows={5}
+                placeholder="What does your startup do, what problem does it solve?"
+                className={`${inp} resize-none`}
+                aria-invalid={!!fieldErrors.desc}
+                aria-describedby={fieldErrors.desc ? "desc-error" : undefined}
+              />
             </Field>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Category *">
-                <select value={form.category} onChange={(e) => set("category", e.target.value)} className={inp}>
+              <Field label="Category *" error={fieldErrors.category}>
+                <select
+                  id="category-input"
+                  value={form.category}
+                  onChange={(e) => set("category", e.target.value)}
+                  className={inp}
+                  aria-invalid={!!fieldErrors.category}
+                >
                   <option value="">Select category...</option>
-                  {categories.map((c) => <option key={c}>{c}</option>)}
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </Field>
-              <Field label="Region *">
-                <select value={form.regionId} onChange={(e) => set("regionId", e.target.value)} className={inp}>
+              <Field label="Region *" error={fieldErrors.regionId}>
+                <select
+                  id="regionId-input"
+                  value={form.regionId}
+                  onChange={(e) => set("regionId", e.target.value)}
+                  className={inp}
+                  aria-invalid={!!fieldErrors.regionId}
+                >
                   <option value="">Select region...</option>
                   {REGIONS.map((region) => <option key={region.id} value={region.id}>{region.label}</option>)}
                 </select>
               </Field>
             </div>
-            <Field label="City (optional)">
-              <input value={form.city} onChange={(e) => set("city", e.target.value)} type="text" placeholder="e.g. Lahore" className={inp} />
+
+            <Field label="City (optional)" error={fieldErrors.city}>
+              <input
+                id="city-input"
+                value={form.city}
+                onChange={(e) => set("city", e.target.value)}
+                type="text"
+                placeholder="e.g. Lahore"
+                className={inp}
+              />
             </Field>
-            <Field label="Website URL">
-              <input value={form.website} onChange={(e) => set("website", e.target.value)} type="url" placeholder="https://yourstartup.pk" className={inp} />
+
+            <Field label="Website URL" error={fieldErrors.website}>
+              <input
+                id="website-input"
+                value={form.website}
+                onChange={(e) => set("website", e.target.value)}
+                type="url"
+                placeholder="https://yourstartup.pk"
+                className={inp}
+                aria-invalid={!!fieldErrors.website}
+              />
             </Field>
           </div>
         )}
@@ -289,7 +390,7 @@ export default function SubmitStartupPage() {
         {step === 1 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-black text-[#002112]">Team & Stage</h2>
-            <Field label="Current Stage *">
+            <Field label="Current Stage *" error={fieldErrors.stage}>
               <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                 {stages.map((s) => (
                   <button key={s} type="button" onClick={() => set("stage", s)}
@@ -301,7 +402,7 @@ export default function SubmitStartupPage() {
             </Field>
             <Field label="Team Size">
               <select value={form.teamSize} onChange={(e) => set("teamSize", e.target.value)} className={inp}>
-                {teamSizes.map((t) => <option key={t}>{t}</option>)}
+                {teamSizes.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </Field>
             <Field label="Founders (comma-separated)">
@@ -394,11 +495,29 @@ export default function SubmitStartupPage() {
 
 const inp = "w-full px-4 py-3 bg-white border border-[#e0e0e0] rounded-lg focus:ring-2 focus:ring-[#0f5238]/40 focus:border-[#0f5238] outline-none text-[#002112] transition-all";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  counter,
+  error,
+  children,
+}: {
+  label: string;
+  counter?: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="block text-xs font-bold text-[#404943] mb-2 uppercase tracking-wider">{label}</label>
+      <div className="flex justify-between items-center mb-2">
+        <label className="block text-xs font-bold text-[#404943] uppercase tracking-wider">{label}</label>
+        {counter && <span className="text-xs text-[#707973] font-medium">{counter}</span>}
+      </div>
       {children}
+      {error && (
+        <p className="text-xs text-red-600 font-medium mt-1" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

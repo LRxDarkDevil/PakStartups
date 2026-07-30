@@ -57,20 +57,22 @@ const PUBLIC_RECORD_TYPES = new Set<StartupRecordType>([
 ]);
 
 type StartupDocument = Omit<Startup, "id">;
-type StartupSubmission = Omit<
-  Startup,
-  | "id"
-  | "status"
-  | "views"
-  | "createdAt"
-  | "country"
-  | "countryCode"
-  | "region"
-  | "regionId"
-  | "recordType"
-  | "isDemo"
-> & {
-  regionId?: RegionId;
+export type StartupSubmission = {
+  name: string;
+  tagline: string;
+  desc: string;
+  category: string;
+  stage: string;
+  teamSize?: string;
+  founders?: string[];
+  linkedin?: string;
+  website?: string;
+  city?: string;
+  regionId: RegionId;
+  slug?: string;
+  logo?: string;
+  ownerId: string;
+  ownerName: string;
 };
 
 function hydrateStartup(id: string, data: StartupDocument): Startup {
@@ -138,9 +140,13 @@ export async function submitStartup(data: StartupSubmission) {
     city: data.city,
   });
 
+  const slug = data.slug || data.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
   return addDoc(collection(db, COL), {
     ...data,
     ...location,
+    slug,
+    logo: data.logo || "",
     recordType: "community-submitted" satisfies StartupRecordType,
     isDemo: false,
     status: "pending",
